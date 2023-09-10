@@ -1,25 +1,38 @@
 #include "stdio.h"
 #include "storage_mgr.h"
 #include "dberror.h"
+#include "fcntl.h"
 
 void initStorageManager() {
 
 }
 
 RC createPageFile(char *fileName){
+    FILE *file = fopen(fileName, O_CREAT);
+    if(file==NULL)
+        return RC_FILE_NOT_FOUND;
     return RC_OK;
 }
 
 RC openPageFile (char *fileName, SM_FileHandle *fHandle){
+    FILE *file = fopen(fileName, O_RDWR);
+    if(file==NULL)
+        return RC_FILE_NOT_FOUND;
+    fHandle->fileName = fileName;
+    fHandle->mgmtInfo = file;
     return RC_OK;
 }
 
 RC closePageFile (SM_FileHandle *fHandle){
-    return RC_OK;
+    if(fclose(fHandle->fileName)==0)
+        return RC_OK;
+    return RC_FILE_NOT_FOUND;
 }
 
 RC destroyPageFile (char *fileName){
-    return RC_OK;
+    if(remove(fileName)==0)
+        return RC_OK;
+    return RC_FILE_NOT_FOUND;
 }
 
 RC readBlock (int pageNum, SM_FileHandle *fHandle, SM_PageHandle memPage){
