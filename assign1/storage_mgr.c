@@ -2,20 +2,21 @@
 #include "storage_mgr.h"
 #include "dberror.h"
 #include "fcntl.h"
+#include "stdlib.h"
 
 void initStorageManager() {
 
 }
 
 RC createPageFile(char *fileName){
-    FILE *file = fopen(fileName, O_CREAT);
+    FILE *file = fopen(fileName, "w");
     if(file==NULL)
         return RC_FILE_NOT_FOUND;
     return RC_OK;
 }
 
 RC openPageFile (char *fileName, SM_FileHandle *fHandle){
-    FILE *file = fopen(fileName, O_RDWR);
+    FILE *file = fopen(fileName, "r+");
     if(file==NULL)
         return RC_FILE_NOT_FOUND;
     if(fHandle==NULL)
@@ -42,9 +43,9 @@ RC openPageFile (char *fileName, SM_FileHandle *fHandle){
 
     // searching first empty block
     SM_PageHandle ph;
-    for (i=0; i < PAGE_SIZE; i++){
+    for(int i=0; i < PAGE_SIZE; i++){
         if(fgetc(file)=='\0'){
-            fHandle->currPagePos = i;
+            fHandle->curPagePos = i;
             break;
         }
     }
@@ -54,7 +55,7 @@ RC openPageFile (char *fileName, SM_FileHandle *fHandle){
 }
 
 RC closePageFile (SM_FileHandle *fHandle){
-    if(fclose(fHandle->fileName)==0)
+    if(fclose(fHandle->mgmtInfo)==0)
         return RC_OK;
     return RC_FILE_NOT_FOUND;
 }
