@@ -32,11 +32,6 @@ RC createPageFile(char *fileName){
     // setting fileName
     fHandle->fileName = fileName;
 
-    // add page directory
-    for(int i=0;i<PAGE_SIZE;i++){
-        fputc('\0', fHandle->mgmtInfo);
-    }
-
     appendEmptyBlock(fHandle); // add empty page
     closePageFile(fHandle);
     return RC_OK;
@@ -57,8 +52,8 @@ RC openPageFile (char *fileName, SM_FileHandle *fHandle){
 
     //setting totalNumPages
     fseek(file, 0, SEEK_END); // seek to end of file
-    int size = ftell(file) - PAGE_SIZE; //size of the file excluding directory
-    fseek(file, PAGE_SIZE, SEEK_SET); // seek back to the first page
+    int size = ftell(file); //size of the file
+    fseek(file, 0, SEEK_SET); // seek back to the first page
     fHandle->totalNumPages = size/PAGE_SIZE;
 
     return RC_OK;
@@ -79,7 +74,7 @@ RC destroyPageFile (char *fileName){
 RC readBlock (int pageNum, SM_FileHandle *fHandle, SM_PageHandle memPage){
     if(fHandle==NULL || memPage==NULL)
         return RC_FILE_HANDLE_NOT_INIT;
-    if(pageNum<1 || pageNum>fHandle->totalNumPages)
+    if(pageNum<0 || pageNum>fHandle->totalNumPages)
         return RC_READ_NON_EXISTING_PAGE;
     long int offset = pageNum*PAGE_SIZE;
     if(fseek(fHandle->mgmtInfo, offset, 0)==0){
@@ -99,7 +94,7 @@ int getBlockPos (SM_FileHandle *fHandle){
 }
 
 RC readFirstBlock (SM_FileHandle *fHandle, SM_PageHandle memPage){
-    return readBlock(1, fHandle, memPage);
+    return readBlock(0, fHandle, memPage);
 }
 
 RC readPreviousBlock (SM_FileHandle *fHandle, SM_PageHandle memPage){
@@ -131,7 +126,7 @@ RC writeBlock (int pageNum, SM_FileHandle *fHandle, SM_PageHandle memPage){
         return RC_FILE_HANDLE_NOT_INIT;
     if(pageNum<0)
         return RC_WRITE_FAILED;
-    long int offset = (pageNum+1)*PAGE_SIZE;
+    long int offset = pageNum*PAGE_SIZE;
     if(fseek(fHandle->mgmtInfo, offset, 0)==0){
         for(int i=0;i<PAGE_SIZE;i++){
             fputc(memPage[i], fHandle->mgmtInfo);
