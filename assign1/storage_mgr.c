@@ -129,9 +129,9 @@ RC readLastBlock (SM_FileHandle *fHandle, SM_PageHandle memPage){
 RC writeBlock (int pageNum, SM_FileHandle *fHandle, SM_PageHandle memPage){
     if(fHandle==NULL || memPage==NULL)
         return RC_FILE_HANDLE_NOT_INIT;
-    if(pageNum<1)
+    if(pageNum<0)
         return RC_WRITE_FAILED;
-    long int offset = pageNum*PAGE_SIZE;
+    long int offset = (pageNum+1)*PAGE_SIZE;
     if(fseek(fHandle->mgmtInfo, offset, 0)==0){
         for(int i=0;i<PAGE_SIZE;i++){
             fputc(memPage[i], fHandle->mgmtInfo);
@@ -146,7 +146,7 @@ RC writeBlock (int pageNum, SM_FileHandle *fHandle, SM_PageHandle memPage){
 RC writeCurrentBlock (SM_FileHandle *fHandle, SM_PageHandle memPage){
     if(fHandle==NULL)
         return RC_FILE_HANDLE_NOT_INIT;
-    return writeBlock(fHandle->curPagePos+1, fHandle, memPage);
+    return writeBlock(fHandle->curPagePos, fHandle, memPage);
 }
 
 RC appendEmptyBlock (SM_FileHandle *fHandle){
