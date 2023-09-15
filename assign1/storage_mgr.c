@@ -34,7 +34,7 @@ RC createPageFile(char *fileName){
 
     // add page directory
     for(int i=0;i<PAGE_SIZE;i++){
-        fputc('0', fHandle->mgmtInfo);
+        fputc('\0', fHandle->mgmtInfo);
     }
 
     appendEmptyBlock(fHandle); // add empty page
