@@ -27,20 +27,20 @@ RC createPageFile(char *fileName){
     }
 
     //fHandle initialization
-    SM_FileHandle* fHandle = (SM_FileHandle *)malloc(sizeof(SM_FileHandle));
-    fHandle->mgmtInfo = (void*)file;
-    fHandle->fileName = fileName;
-    fHandle->curPagePos = 0;
-    fHandle->totalNumPages = 0;
+    SM_FileHandle fHandle;
+    fHandle.mgmtInfo = (void*)file;
+    fHandle.fileName = fileName;
+    fHandle.curPagePos = 0;
+    fHandle.totalNumPages = 0;
 
     //add empty page directory in the file
-    updatePageDirectory(fHandle, directory);
+    updatePageDirectory(&fHandle, directory);
 
     //added empty page
-    appendEmptyBlock(fHandle);
+    appendEmptyBlock(&fHandle);
 
     // close fHandle
-    closePageFile(fHandle);
+    closePageFile(&fHandle);
     return RC_OK;
 }
 
