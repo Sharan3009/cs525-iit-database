@@ -17,6 +17,7 @@ char *testName;
 static void testCreateOpenClose(void);
 static void testSinglePageContent(void);
 static void testTenPageContent(void);
+static void testMultipleCreationWithoutDeletion(void);
 static void testPagePosAndTotal(void);
 static void testEnsureCapacity(void);
 
@@ -31,6 +32,7 @@ main (void)
   testCreateOpenClose();
   testSinglePageContent();
   testTenPageContent();
+  testMultipleCreationWithoutDeletion();
   testPagePosAndTotal();
   testEnsureCapacity();
 
@@ -153,10 +155,17 @@ testTenPageContent(void)
   ASSERT_TRUE(fh.totalNumPages==10,"Total number of pages is 10");
 
   TEST_CHECK(closePageFile (&fh));
-  // destroy new page file
-  TEST_CHECK(destroyPageFile (TESTPF));  
+  
   
   TEST_DONE();
+}
+
+void
+testMultipleCreationWithoutDeletion(void) {
+  testName = "Re running the test case by just closing and again creating then opening";
+  testTenPageContent();
+  // destroy new page file
+  TEST_CHECK(destroyPageFile (TESTPF));  
 }
 
 void
