@@ -23,7 +23,7 @@ RC createPageFile(char *fileName){
     }
 
     // Creates file if it does not exist
-    file = fopen(fileName, "w+");
+    file = fopen(fileName, "wb+");
     if(file==NULL){
         return RC_FILE_NOT_FOUND;
     }
@@ -50,7 +50,7 @@ RC createPageFile(char *fileName){
 
 RC openPageFile (char *fileName, SM_FileHandle *fHandle){
     // open file in read-write mode
-    FILE *file = fopen(fileName, "r+");
+    FILE *file = fopen(fileName, "rb+");
     if(file==NULL)
         return RC_FILE_NOT_FOUND;
     if(fHandle==NULL)
