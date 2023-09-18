@@ -42,13 +42,16 @@ RC createPageFile(char *fileName){
     //add empty page directory in the file
     directory = (SM_PageHandle)realloc(directory, PAGE_SIZE);
     memset(directory, '\0', PAGE_SIZE);
-    updatePageDirectory(&fHandle, directory);
+    if(updatePageDirectory(&fHandle, directory)!=RC_OK)
+        return RC_FILE_NOT_FOUND;
 
     //added empty page
-    appendEmptyBlock(&fHandle);
+    if(appendEmptyBlock(&fHandle)!=RC_OK)
+        return RC_FILE_NOT_FOUND;
 
     // close fHandle
-    closePageFile(&fHandle);
+    if(closePageFile(&fHandle)!=RC_OK)
+        return RC_FILE_NOT_FOUND;
     return RC_OK;
 }
 
@@ -65,7 +68,8 @@ RC openPageFile (char *fileName, SM_FileHandle *fHandle){
     fHandle->mgmtInfo = file;
 
     directory = (SM_PageHandle)realloc(directory, PAGE_SIZE);
-    readPageDirectory(fHandle, directory);
+    if(readPageDirectory(fHandle, directory)!=RC_OK)
+        return RC_FILE_NOT_FOUND;
 
     fHandle->curPagePos = 0;
 
@@ -81,7 +85,8 @@ RC openPageFile (char *fileName, SM_FileHandle *fHandle){
 
 RC closePageFile (SM_FileHandle *fHandle){
     //before closing page, make sure directory is saved in the file
-    updatePageDirectory(fHandle, directory);
+    if(updatePageDirectory(fHandle, directory)!=RC_OK)
+        return RC_FILE_NOT_FOUND;
     if(fclose(fHandle->mgmtInfo)==0){
         return RC_OK;
     }
@@ -91,7 +96,7 @@ RC closePageFile (SM_FileHandle *fHandle){
 RC destroyPageFile (char *fileName){
     if(remove(fileName)==0)
         return RC_OK;
-        return RC_FILE_NOT_FOUND;
+    return RC_FILE_NOT_FOUND;
 }
 
 RC readBlock (int pageNum, SM_FileHandle *fHandle, SM_PageHandle memPage){
