@@ -6,7 +6,7 @@ Sharandeep Singh
 #Ideation
 =========================
 1) In the beginning of each file, I am saving an extra page that will act as a page directory. Initially all the bits of this page will be '\0'. This page just act as an index to each page which tells if that index page is filled ('1') or empty/unused ('\0'). Directory related functions are in `page_directory.c`.
-2) This directory is stored in memory whenever file is opened. This page gets modified by each operation and is stored back in the file when close operation is called.
+2) This directory is stored in memory whenever file is opened. This page gets modified by each operation and is stored back in the file when close operation is called. This is done to stop unnecessary IO to file to update directory.
 3) At the core level, all reading and writing is handled by `readBlock` and `writeBlock` function. All other functions are re-using these functions to do specific task. This prevents the code and logic duplication in each of the functions.
 4) Files are opened in binary mode ("rb+", "wb+"), as this helps reading and writing faster than normal text file.
 5) Extra test cases are written and to test the robustness. Also, valgrind complains no memory leaks.
