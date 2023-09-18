@@ -114,13 +114,21 @@ int getBlockPos (SM_FileHandle *fHandle){
 }
 
 RC readFirstBlock (SM_FileHandle *fHandle, SM_PageHandle memPage){
-    return readBlock(0, fHandle, memPage);
+    RC ret = readBlock(0, fHandle, memPage);
+    if(ret == RC_OK){
+        fHandle->curPagePos = 0;
+    }
+    return ret;
 }
 
 RC readPreviousBlock (SM_FileHandle *fHandle, SM_PageHandle memPage){
     if(fHandle==NULL)
         return RC_FILE_HANDLE_NOT_INIT;
-    return readBlock(fHandle->curPagePos--, fHandle, memPage);
+    RC ret = readBlock(fHandle->curPagePos-1, fHandle, memPage);
+    if(ret==RC_OK){
+        fHandle->curPagePos--;
+    }
+    return ret;
 }
 
 RC readCurrentBlock (SM_FileHandle *fHandle, SM_PageHandle memPage){
@@ -132,13 +140,21 @@ RC readCurrentBlock (SM_FileHandle *fHandle, SM_PageHandle memPage){
 RC readNextBlock (SM_FileHandle *fHandle, SM_PageHandle memPage){
     if(fHandle==NULL)
         return RC_FILE_HANDLE_NOT_INIT;
-    return readBlock(fHandle->curPagePos++, fHandle, memPage);
+    RC ret = readBlock(fHandle->curPagePos+1, fHandle, memPage);
+    if(ret==RC_OK){
+        fHandle->curPagePos++;
+    }
+    return ret;
 }
 
 RC readLastBlock (SM_FileHandle *fHandle, SM_PageHandle memPage){
     if(fHandle==NULL)
         return RC_FILE_HANDLE_NOT_INIT;
-    return readBlock(fHandle->totalNumPages-1, fHandle, memPage);
+    RC ret = readBlock(fHandle->totalNumPages-1, fHandle, memPage);
+    if(ret==RC_OK){
+        fHandle->curPagePos = fHandle->totalNumPages-1;
+    }
+    return ret;
 }
 
 RC writeBlock (int pageNum, SM_FileHandle *fHandle, SM_PageHandle memPage){
