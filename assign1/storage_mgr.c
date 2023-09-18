@@ -4,11 +4,13 @@
 #include "fcntl.h"
 #include "stdlib.h"
 #include "page_directory.h"
+#include "string.h"
 
 SM_PageHandle directory = NULL;
 void initStorageManager() {
     // initialize page directory
     directory = (SM_PageHandle)malloc(PAGE_SIZE);
+    memset(directory, '\0', PAGE_SIZE);
 }
 
 RC createPageFile(char *fileName){
@@ -34,6 +36,8 @@ RC createPageFile(char *fileName){
     fHandle.totalNumPages = 0;
 
     //add empty page directory in the file
+    directory = (SM_PageHandle)realloc(directory, PAGE_SIZE);
+    memset(directory, '\0', PAGE_SIZE);
     updatePageDirectory(&fHandle, directory);
 
     //added empty page
@@ -55,6 +59,10 @@ RC openPageFile (char *fileName, SM_FileHandle *fHandle){
     // setting fHandle properties
     fHandle->fileName = fileName;
     fHandle->mgmtInfo = file;
+
+    directory = (SM_PageHandle)realloc(directory, PAGE_SIZE);
+    readPageDirectory(fHandle, directory);
+
     fHandle->curPagePos = 0;
 
     //setting totalPages
@@ -137,13 +145,17 @@ RC writeBlock (int pageNum, SM_FileHandle *fHandle, SM_PageHandle memPage){
     if(fHandle==NULL || memPage==NULL)
         return RC_FILE_HANDLE_NOT_INIT;
     // if page is outside the range of directory, or no entry in the directory
-    if(pageNum<0 || pageNum>=PAGE_SIZE || directory[pageNum]=='\0')
+    if(pageNum<0 || pageNum>=PAGE_SIZE)
         return RC_WRITE_FAILED;
 
     long int offset = (pageNum+1)*PAGE_SIZE; //+1 is for first page is directory
     if(fseek(fHandle->mgmtInfo, offset, 0)==0){
         for(int i=0;i<PAGE_SIZE;i++){
             fputc(memPage[i], fHandle->mgmtInfo);
+        }
+        if(directory[pageNum]=='\0'){
+            directory[pageNum] = '1'; // set index in directory to used
+            fHandle->totalNumPages++; // increase number of total pages
         }
         return RC_OK;
     }
@@ -160,16 +172,14 @@ RC appendEmptyBlock (SM_FileHandle *fHandle){
     if(fHandle==NULL){
         return RC_FILE_HANDLE_NOT_INIT;
     }
-    directory[fHandle->curPagePos] = '1'; // set index in directory to used
     SM_PageHandle ph = (SM_PageHandle) malloc(PAGE_SIZE);
-    RC ret = writeCurrentBlock(fHandle, ph);
+    RC ret = writeBlock(fHandle->totalNumPages, fHandle, ph);
     return ret;
 }
 
 RC ensureCapacity (int numberOfPages, SM_FileHandle *fHandle){
     //appendEmptyBlocks for remaining number of pages
     for(int i=0;i<(numberOfPages-fHandle->totalNumPages);i++){
-        fHandle->curPagePos++;
         if(appendEmptyBlock(fHandle)!=RC_OK){
             return RC_WRITE_FAILED;
         }

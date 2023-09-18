@@ -15,9 +15,11 @@ RC readPageDirectory(SM_FileHandle *fHandle, SM_PageHandle directory){
 RC updatePageDirectory(SM_FileHandle *fHandle, SM_PageHandle directory){
     if(fHandle==NULL || directory==NULL)
         return RC_FILE_HANDLE_NOT_INIT;
-    fseek(fHandle->mgmtInfo, 0, SEEK_SET);
-    for(int i=0;i<PAGE_SIZE;i++){
-        fputc(directory[i], fHandle->mgmtInfo);
+    if(fseek(fHandle->mgmtInfo, 0, SEEK_SET)==0){
+        for(int i=0;i<PAGE_SIZE;i++){
+            fputc(directory[i], fHandle->mgmtInfo);
+        }
+        return RC_OK;
     }
-    return RC_OK;
+    return RC_WRITE_FAILED;
 }
