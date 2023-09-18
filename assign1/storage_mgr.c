@@ -1,10 +1,14 @@
-#include "stdio.h"
+#include <stdio.h>
+#include <string.h>
+#include <stdlib.h>
+
 #include "storage_mgr.h"
 #include "dberror.h"
-#include "fcntl.h"
-#include "stdlib.h"
 #include "page_directory.h"
-#include "string.h"
+
+#define READ "r"
+#define WRITE "wb+"
+#define READ_WRITE "rb+"
 
 SM_PageHandle directory = NULL;
 void initStorageManager() {
@@ -16,14 +20,14 @@ void initStorageManager() {
 RC createPageFile(char *fileName){
 
     // Check if file already exists
-    FILE *file = fopen(fileName, "r");
+    FILE *file = fopen(fileName, READ);
     if(file!=NULL){
         fclose(file);
         return RC_OK;
     }
 
     // Creates file if it does not exist
-    file = fopen(fileName, "wb+");
+    file = fopen(fileName, WRITE);
     if(file==NULL){
         return RC_FILE_NOT_FOUND;
     }
@@ -50,7 +54,7 @@ RC createPageFile(char *fileName){
 
 RC openPageFile (char *fileName, SM_FileHandle *fHandle){
     // open file in read-write mode
-    FILE *file = fopen(fileName, "rb+");
+    FILE *file = fopen(fileName, READ_WRITE);
     if(file==NULL)
         return RC_FILE_NOT_FOUND;
     if(fHandle==NULL)
@@ -87,7 +91,7 @@ RC closePageFile (SM_FileHandle *fHandle){
 RC destroyPageFile (char *fileName){
     if(remove(fileName)==0)
         return RC_OK;
-    return RC_FILE_NOT_FOUND;
+        return RC_FILE_NOT_FOUND;
 }
 
 RC readBlock (int pageNum, SM_FileHandle *fHandle, SM_PageHandle memPage){
