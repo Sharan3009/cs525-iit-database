@@ -197,7 +197,8 @@ RC appendEmptyBlock (SM_FileHandle *fHandle){
 
 RC ensureCapacity (int numberOfPages, SM_FileHandle *fHandle){
     //appendEmptyBlocks for remaining number of pages
-    for(int i=0;i<(numberOfPages-fHandle->totalNumPages);i++){
+    int totalPages = fHandle->totalNumPages;
+    for(int i=0;i<(numberOfPages-totalPages);i++){
         if(appendEmptyBlock(fHandle)!=RC_OK){
             return RC_WRITE_FAILED;
         }
