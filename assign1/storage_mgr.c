@@ -96,7 +96,7 @@ RC readBlock (int pageNum, SM_FileHandle *fHandle, SM_PageHandle memPage){
     // if page is outside the range of directory, or no entry in the directory
     if(pageNum<0 || pageNum>=fHandle->totalNumPages || directory[pageNum]=='\0')
         return RC_READ_NON_EXISTING_PAGE;
-    
+
     long int offset = (pageNum+1)*PAGE_SIZE; //+1 because first page is directory
     if(fseek(fHandle->mgmtInfo, offset, 0)==0){
         for(int i=0;i<PAGE_SIZE;i++){
@@ -145,9 +145,9 @@ RC writeBlock (int pageNum, SM_FileHandle *fHandle, SM_PageHandle memPage){
     if(fHandle==NULL || memPage==NULL)
         return RC_FILE_HANDLE_NOT_INIT;
     // if page is outside the range of directory, or no entry in the directory
-    if(pageNum<0 || pageNum>=PAGE_SIZE)
+    if(pageNum<0 || pageNum>=PAGE_SIZE || ensureCapacity(pageNum, fHandle)!=RC_OK)
         return RC_WRITE_FAILED;
-
+    
     long int offset = (pageNum+1)*PAGE_SIZE; //+1 is for first page is directory
     if(fseek(fHandle->mgmtInfo, offset, 0)==0){
         for(int i=0;i<PAGE_SIZE;i++){
