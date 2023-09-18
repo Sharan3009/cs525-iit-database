@@ -173,7 +173,9 @@ RC appendEmptyBlock (SM_FileHandle *fHandle){
         return RC_FILE_HANDLE_NOT_INIT;
     }
     SM_PageHandle ph = (SM_PageHandle) malloc(PAGE_SIZE);
+    memset(ph, '\0', PAGE_SIZE);
     RC ret = writeBlock(fHandle->totalNumPages, fHandle, ph);
+    free(ph);
     return ret;
 }
 
