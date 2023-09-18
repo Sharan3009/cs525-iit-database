@@ -183,21 +183,21 @@ testPagePosAndTotal(void)
     printf("writing block %d\n",p);
   }
 
-  ASSERT_TRUE(fh.curPagePos==0, "Current page position is 0");
+  ASSERT_TRUE(getBlockPos(&fh)==0, "Current page position is 0");
   ASSERT_TRUE(fh.totalNumPages==10, "Total number of pages is 10");
 
   TEST_CHECK(readBlock(3, &fh, ph));
   printf("Reading 4th block\n");
-  ASSERT_TRUE(fh.curPagePos==0, "Current page position is 0");
+  ASSERT_TRUE(getBlockPos(&fh)==0, "Current page position is 0");
 
 
   ASSERT_ERROR(readPreviousBlock(&fh, ph),"Cant read before 0th block");
-  ASSERT_TRUE(fh.curPagePos==0, "Current page position is 0");
+  ASSERT_TRUE(getBlockPos(&fh)==0, "Current page position is 0");
 
   TEST_CHECK(readNextBlock(&fh, ph));
   printf("Reading 2nd block\n");
 
-  ASSERT_TRUE(fh.curPagePos==1, "Current page position is 2");
+  ASSERT_TRUE(getBlockPos(&fh)==1, "Current page position is 2");
   ASSERT_TRUE(fh.totalNumPages==10,"Total number of pages is 10");
 
   TEST_CHECK(closePageFile (&fh));
@@ -224,7 +224,7 @@ testEnsureCapacity(void)
   TEST_CHECK(openPageFile (TESTPF, &fh));
   printf("created and opened file\n");
 
-  ASSERT_TRUE(fh.curPagePos==0, "Current page position is 0");
+  ASSERT_TRUE(getBlockPos(&fh)==0, "Current page position is 0");
   ASSERT_TRUE(fh.totalNumPages==1, "Total number of pages is 1");
 
   // change ph to be a string and write that one to disk
@@ -233,7 +233,7 @@ testEnsureCapacity(void)
   TEST_CHECK(writeBlock (9, &fh, ph));
   printf("writing 10th block\n");
 
-  ASSERT_TRUE(fh.curPagePos==0, "Current page position is 0");
+  ASSERT_TRUE(getBlockPos(&fh)==0, "Current page position is 0");
   ASSERT_TRUE(fh.totalNumPages==10, "Total number of pages is 10");
 
   for(i=1;i<10;i++){
@@ -241,7 +241,15 @@ testEnsureCapacity(void)
     printf("Reading %dth block\n", i);
   }
 
-  ASSERT_TRUE(fh.curPagePos==9, "Current page position is 9");
+  TEST_CHECK(readFirstBlock(&fh, ph));
+  printf("Read first block\n");
+
+  ASSERT_TRUE(getBlockPos(&fh)==0, "Current page position is 0");
+
+  TEST_CHECK(readLastBlock(&fh, ph));
+  printf("Read last block again\n");
+
+  ASSERT_TRUE(getBlockPos(&fh)==9, "Current page position is 9");
 
   ASSERT_ERROR(readNextBlock(&fh, ph),"Cant read after page position 9");
 
