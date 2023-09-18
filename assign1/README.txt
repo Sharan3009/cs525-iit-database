@@ -3,7 +3,7 @@ GROUP 62
 Sharandeep Singh
 
 
-#Ideation
+# Ideation
 =========================
 1) In the beginning of each file, I am saving an extra page that will act as a page directory. Initially all the bits of this page will be '\0'. This page just act as an index to each page which tells if that index page is filled ('1') or empty/unused ('\0'). Directory related functions are in `page_directory.c`.
 2) This directory is stored in memory whenever file is opened. This page gets modified by each operation and is stored back in the file when close operation is called. This is done to stop unnecessary IO to file to update directory.
@@ -11,6 +11,13 @@ Sharandeep Singh
 4) Files are opened in binary mode ("rb+", "wb+"), as this helps reading and writing faster than normal text file.
 5) Extra test cases are written and to test the robustness. Also, valgrind complains no memory leaks.
 
+# How to execute
+=========================
+1) Navigate to the folder `assign1` and open the terminal here.
+2) Run `make clean` to clear `test_assign1` file if any.
+3) Run `make` command to generate new `test_assign1` file.
+4) Run test cases by executing the file in terminal `./test_assign1`.
+5) All the current and additional test cases pass and you will see no errors in it.
 
 # Code structure
 =========================
