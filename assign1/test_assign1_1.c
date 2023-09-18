@@ -18,6 +18,7 @@ static void testCreateOpenClose(void);
 static void testSinglePageContent(void);
 static void testTenPageContent(void);
 static void testPagePosAndTotal(void);
+static void testEnsureCapacity(void);
 
 /* main function running all tests */
 int
@@ -31,6 +32,7 @@ main (void)
   testSinglePageContent();
   testTenPageContent();
   testPagePosAndTotal();
+  testEnsureCapacity();
 
   return 0;
 }
@@ -185,7 +187,7 @@ testPagePosAndTotal(void)
   ASSERT_TRUE(fh.totalNumPages==10, "Total number of pages is 10");
 
   TEST_CHECK(readBlock(3, &fh, ph));
-  printf("Reading 4th block");
+  printf("Reading 4th block\n");
   ASSERT_TRUE(fh.curPagePos==0, "Current page position is 0");
 
 
@@ -193,10 +195,56 @@ testPagePosAndTotal(void)
   ASSERT_TRUE(fh.curPagePos==0, "Current page position is 0");
 
   TEST_CHECK(readNextBlock(&fh, ph));
-  printf("Reading 2nd block");
+  printf("Reading 2nd block\n");
 
   ASSERT_TRUE(fh.curPagePos==1, "Current page position is 2");
   ASSERT_TRUE(fh.totalNumPages==10,"Total number of pages is 10");
+
+  TEST_CHECK(closePageFile (&fh));
+  // destroy new page file
+  TEST_CHECK(destroyPageFile (TESTPF));  
+  
+  TEST_DONE();
+}
+
+
+void
+testEnsureCapacity(void)
+{
+  SM_FileHandle fh;
+  SM_PageHandle ph;
+  int i;
+
+  testName = "test Ensure capacity method";
+
+  ph = (SM_PageHandle) malloc(PAGE_SIZE);
+
+  // create a new page file
+  TEST_CHECK(createPageFile (TESTPF));
+  TEST_CHECK(openPageFile (TESTPF, &fh));
+  printf("created and opened file\n");
+
+  ASSERT_TRUE(fh.curPagePos==0, "Current page position is 0");
+  ASSERT_TRUE(fh.totalNumPages==1, "Total number of pages is 1");
+
+  // change ph to be a string and write that one to disk
+  for (i=0; i < PAGE_SIZE; i++)
+    ph[i] = (i % 10) + '9';
+  TEST_CHECK(writeBlock (9, &fh, ph));
+  printf("writing 10th block\n");
+
+  ASSERT_TRUE(fh.curPagePos==0, "Current page position is 0");
+  ASSERT_TRUE(fh.totalNumPages==10, "Total number of pages is 10");
+
+  for(i=1;i<10;i++){
+    TEST_CHECK(readNextBlock(&fh, ph));
+    printf("Reading %dth block\n", i);
+  }
+
+  ASSERT_TRUE(fh.curPagePos==9, "Current page position is 9");
+
+  ASSERT_ERROR(readNextBlock(&fh, ph),"Cant read after page position 9");
+
 
   TEST_CHECK(closePageFile (&fh));
   // destroy new page file
