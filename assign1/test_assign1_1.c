@@ -16,6 +16,7 @@ char *testName;
 /* prototypes for test functions */
 static void testCreateOpenClose(void);
 static void testSinglePageContent(void);
+static void testTenPageContent(void);
 
 /* main function running all tests */
 int
@@ -27,6 +28,7 @@ main (void)
 
   testCreateOpenClose();
   testSinglePageContent();
+  testTenPageContent();
 
   return 0;
 }
@@ -92,6 +94,60 @@ testSinglePageContent(void)
   for (i=0; i < PAGE_SIZE; i++)
     ASSERT_TRUE((ph[i] == (i % 10) + '0'), "character in page read from disk is the one we expected.");
   printf("reading first block\n");
+
+  TEST_CHECK(closePageFile (&fh));
+  // destroy new page file
+  TEST_CHECK(destroyPageFile (TESTPF));  
+  
+  TEST_DONE();
+}
+
+
+void
+testTenPageContent(void)
+{
+  SM_FileHandle fh;
+  SM_PageHandle ph;
+  int i;
+
+  testName = "test ten page content";
+
+  ph = (SM_PageHandle) malloc(PAGE_SIZE);
+
+  // create a new page file
+  TEST_CHECK(createPageFile (TESTPF));
+  TEST_CHECK(openPageFile (TESTPF, &fh));
+  printf("created and opened file\n");
+    
+  // change ph to be a string and write that one to disk
+  for(int p=0;p<10;p++){
+    for (i=0; i < PAGE_SIZE; i++)
+      ph[i] = (i % 10) + p + '0';
+    TEST_CHECK(writeBlock (p, &fh, ph));
+    printf("writing block %d\n",p);
+  }
+
+  // read back the page containing the string and check that it is correct
+   for(int p=0;p<10;p++){
+    if(p==0){
+      TEST_CHECK(readCurrentBlock(&fh, ph));
+    } else {
+      TEST_CHECK(readNextBlock(&fh, ph));
+    }
+    int readPassed = 1;
+    for(i=0;i<PAGE_SIZE;i++){
+      if(ph[i]!=(i%10) + p + '0'){
+        readPassed = 0;
+        break;
+      }
+    }
+    ASSERT_TRUE(readPassed==1,"All characters are same");
+    printf("Block #%d content is as expected\n",p);
+    
+  }
+
+  ASSERT_TRUE(fh.curPagePos==9,"Current page position is 9");
+  ASSERT_TRUE(fh.totalNumPages==10,"Total number of pages is 10");
 
   TEST_CHECK(closePageFile (&fh));
   // destroy new page file
