@@ -7,8 +7,9 @@ RC readPageDirectory(SM_FileHandle *fHandle, SM_PageHandle directory){
     if(fHandle==NULL || directory==NULL)
         return RC_FILE_HANDLE_NOT_INIT;
     RC ret;
-    int pos = ftell(fHandle->mgmtInfo);
-    if(fseek(fHandle->mgmtInfo, 0, SEEK_SET)==0){
+    int pos = ftell(fHandle->mgmtInfo); // store current position of file pointer
+    if(fseek(fHandle->mgmtInfo, 0, SEEK_SET)==0){ // move pointer to the beginning
+        // read the directory
         for(int i=0;i<PAGE_SIZE;i++){
             directory[i] = fgetc(fHandle->mgmtInfo);
         }
@@ -16,6 +17,7 @@ RC readPageDirectory(SM_FileHandle *fHandle, SM_PageHandle directory){
     } else {
         ret = RC_READ_NON_EXISTING_PAGE;
     }
+    // move the pointer back
     fseek(fHandle->mgmtInfo, pos, SEEK_SET);
     return ret;
 }
@@ -23,11 +25,18 @@ RC readPageDirectory(SM_FileHandle *fHandle, SM_PageHandle directory){
 RC updatePageDirectory(SM_FileHandle *fHandle, SM_PageHandle directory){
     if(fHandle==NULL || directory==NULL)
         return RC_FILE_HANDLE_NOT_INIT;
-    if(fseek(fHandle->mgmtInfo, 0, SEEK_SET)==0){
+    RC ret;
+    int pos = ftell(fHandle->mgmtInfo); // store current position of file pointer
+    if(fseek(fHandle->mgmtInfo, 0, SEEK_SET)==0){ // move pointer to the beginning
+        // write the directory
         for(int i=0;i<PAGE_SIZE;i++){
             fputc(directory[i], fHandle->mgmtInfo);
         }
-        return RC_OK;
+        ret = RC_OK;
+    } else {
+        ret = RC_READ_NON_EXISTING_PAGE;
     }
-    return RC_WRITE_FAILED;
+    // move the pointer back
+    fseek(fHandle->mgmtInfo, pos, SEEK_SET);
+    return ret;
 }

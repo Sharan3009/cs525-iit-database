@@ -87,5 +87,7 @@ reads the page directory from the file.
 seeks back the pointer where it was initially.
 
 writePageDirectory()
+stores the current file position using `ftell`
 moves file pointer to the beginning where the page directory is
 writes the page directory to the file.
+seeks back the pointer where it was initially.
