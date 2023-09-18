@@ -68,11 +68,13 @@ RC openPageFile (char *fileName, SM_FileHandle *fHandle){
     fHandle->fileName = fileName;
     fHandle->mgmtInfo = file;
 
+    // load page directory
     directory = (SM_PageHandle)realloc(directory, PAGE_SIZE);
     RC code;
     if((code = readPageDirectory(fHandle, directory))!=RC_OK)
         return code;
 
+    // setting curPagePos
     fHandle->curPagePos = 0;
 
     //setting totalPages
@@ -126,7 +128,9 @@ int getBlockPos (SM_FileHandle *fHandle){
 }
 
 RC readFirstBlock (SM_FileHandle *fHandle, SM_PageHandle memPage){
+    //read first block
     RC ret = readBlock(0, fHandle, memPage);
+    // if reading succeeds then update the curPagePos
     if(ret == RC_OK){
         fHandle->curPagePos = 0;
     }
@@ -136,7 +140,9 @@ RC readFirstBlock (SM_FileHandle *fHandle, SM_PageHandle memPage){
 RC readPreviousBlock (SM_FileHandle *fHandle, SM_PageHandle memPage){
     if(fHandle==NULL)
         return RC_FILE_HANDLE_NOT_INIT;
+    // read previous block
     RC ret = readBlock(fHandle->curPagePos-1, fHandle, memPage);
+    // if reading succeeds then update the curPagePos
     if(ret==RC_OK){
         fHandle->curPagePos--;
     }
@@ -146,13 +152,16 @@ RC readPreviousBlock (SM_FileHandle *fHandle, SM_PageHandle memPage){
 RC readCurrentBlock (SM_FileHandle *fHandle, SM_PageHandle memPage){
     if(fHandle==NULL)
         return RC_FILE_HANDLE_NOT_INIT;
+    // reading current block. No updation is required for curPagePos
     return readBlock(fHandle->curPagePos, fHandle, memPage);
 }
 
 RC readNextBlock (SM_FileHandle *fHandle, SM_PageHandle memPage){
     if(fHandle==NULL)
         return RC_FILE_HANDLE_NOT_INIT;
+    // read next block
     RC ret = readBlock(fHandle->curPagePos+1, fHandle, memPage);
+    // if reading succeeds then update the curPagePos
     if(ret==RC_OK){
         fHandle->curPagePos++;
     }
@@ -162,7 +171,9 @@ RC readNextBlock (SM_FileHandle *fHandle, SM_PageHandle memPage){
 RC readLastBlock (SM_FileHandle *fHandle, SM_PageHandle memPage){
     if(fHandle==NULL)
         return RC_FILE_HANDLE_NOT_INIT;
+    // read last block
     RC ret = readBlock(fHandle->totalNumPages-1, fHandle, memPage);
+    // if reading succeeds then update the curPagePos
     if(ret==RC_OK){
         fHandle->curPagePos = fHandle->totalNumPages-1;
     }
@@ -172,7 +183,7 @@ RC readLastBlock (SM_FileHandle *fHandle, SM_PageHandle memPage){
 RC writeBlock (int pageNum, SM_FileHandle *fHandle, SM_PageHandle memPage){
     if(fHandle==NULL || memPage==NULL)
         return RC_FILE_HANDLE_NOT_INIT;
-    // if page is outside the range of directory, or no entry in the directory
+    // if page is outside the range of directory, or capacity is not upto the input pageNum
     if(pageNum<0 || pageNum>=PAGE_SIZE || ensureCapacity(pageNum, fHandle)!=RC_OK)
         return RC_WRITE_FAILED;
     
@@ -200,15 +211,18 @@ RC appendEmptyBlock (SM_FileHandle *fHandle){
     if(fHandle==NULL){
         return RC_FILE_HANDLE_NOT_INIT;
     }
+    // create empty block
     SM_PageHandle ph = (SM_PageHandle) malloc(PAGE_SIZE);
     memset(ph, '\0', PAGE_SIZE);
+    // write empty block to the file
     RC ret = writeBlock(fHandle->totalNumPages, fHandle, ph);
+    // free the memory
     free(ph);
     return ret;
 }
 
 RC ensureCapacity (int numberOfPages, SM_FileHandle *fHandle){
-    //appendEmptyBlocks for remaining number of pages
+    //appendEmptyBlocks for remaining number of pages iteratively
     int totalPages = fHandle->totalNumPages;
     for(int i=0;i<(numberOfPages-totalPages);i++){
         if(appendEmptyBlock(fHandle)!=RC_OK){
