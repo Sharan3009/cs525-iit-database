@@ -16,8 +16,9 @@ Sharandeep Singh
 1) Navigate to the folder `assign1` and open the terminal here.
 2) Run `make clean` to clear `test_assign1` file if any.
 3) Run `make` command to generate new `test_assign1` file.
-4) Run test cases by executing the file in terminal `./test_assign1`.
-5) All the current and additional test cases pass and you will see no errors in it.
+4) Make sure all the database files are deleted before running the test cases
+5) Run test cases by executing the file in terminal `./test_assign1`.
+6) All the current and additional test cases pass and you will see no errors in it.
 
 # Code structure
 =========================
