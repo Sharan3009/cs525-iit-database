@@ -10,7 +10,9 @@
 #define WRITE "wb+"
 #define READ_WRITE "rb+"
 
+SM_FileHandle currFile;
 SM_PageHandle directory = NULL;
+
 void initStorageManager() {
     // initialize page directory
     directory = (SM_PageHandle)malloc(PAGE_SIZE);
@@ -84,6 +86,8 @@ RC openPageFile (char *fileName, SM_FileHandle *fHandle){
             fHandle->totalNumPages++;
     }
 
+    currFile = *fHandle;
+
     return RC_OK;
 }
 
@@ -93,12 +97,16 @@ RC closePageFile (SM_FileHandle *fHandle){
     if(code = (updatePageDirectory(fHandle, directory))!=RC_OK)
         return RC_FILE_NOT_FOUND;
     if(fclose(fHandle->mgmtInfo)==0){
+        //clear the currFile
+        memset(&currFile, 0, sizeof(SM_FileHandle));
         return RC_OK;
     }
     return RC_FILE_NOT_FOUND;
 }
 
 RC destroyPageFile (char *fileName){
+    if(currFile.fileName!=NULL)
+        closePageFile(&currFile);
     if(remove(fileName)==0)
         return RC_OK;
     return RC_FILE_NOT_FOUND;
