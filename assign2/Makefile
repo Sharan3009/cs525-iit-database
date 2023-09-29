@@ -9,4 +9,4 @@ test_assign2_2: test_assign2_2.c storage_mgr.c dberror.c page_directory.c buffer
 
 .PHONY: clean
 clean: 
-	rm test_assign2_1 rm test_assign2_2
+	rm test_assign2_1 test_assign2_2
