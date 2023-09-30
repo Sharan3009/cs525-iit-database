@@ -12,11 +12,11 @@ void initPageTable(PageTable *pageTable, int size){
     }
 }
 
-int hashPage(int pageNum, int size){
+int hashPage(PageNumber pageNum, int size){
     return pageNum % size;
 }
 
-int addPage(PageTable *pageTable, int pageNum, char* pageData) {
+int addPage(PageTable *pageTable, PageNumber pageNum, char* pageData) {
     int index = hashPage(pageNum, pageTable->size);
 
     if(isTableFull(pageTable)==true){
@@ -36,7 +36,7 @@ int addPage(PageTable *pageTable, int pageNum, char* pageData) {
     return index;
 }
 
-char* getPage(PageTable *pageTable, int pageNum) {
+char* getPage(PageTable *pageTable, PageNumber pageNum) {
     int index = hashPage(pageNum, pageTable->size);
     
     // Linear probing to find the key
@@ -51,7 +51,7 @@ char* getPage(PageTable *pageTable, int pageNum) {
 }
 
 
-int removePage(PageTable *pageTable, int pageNum) {
+int removePage(PageTable *pageTable, PageNumber pageNum) {
     int index = hashPage(pageNum, pageTable->size);
     
     // Linear probing to find the key
