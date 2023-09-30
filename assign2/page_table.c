@@ -16,7 +16,7 @@ int hashPage(int pageNum, int size){
     return pageNum % size;
 }
 
-int addPage(PageTable *pageTable, int pageNum, int pageOffset) {
+int addPage(PageTable *pageTable, int pageNum, char* pageData) {
     int index = hashPage(pageNum, pageTable->size);
 
     if(isTableFull(pageTable)==true){
@@ -30,24 +30,24 @@ int addPage(PageTable *pageTable, int pageNum, int pageOffset) {
     
     // Store the key-value pair in the found slot
     pageTable->table[index].pageNum = pageNum;
-    pageTable->table[index].pageOffset = pageOffset;
+    pageTable->table[index].pageData = pageData;
     pageTable->table[index].occupied = 1;
     pageTable->actualSize++;
     return index;
 }
 
-int getPage(PageTable *pageTable, int pageNum) {
+char* getPage(PageTable *pageTable, int pageNum) {
     int index = hashPage(pageNum, pageTable->size);
     
     // Linear probing to find the key
     while (pageTable->table[index].occupied) {
         if (pageTable->table[index].pageNum == pageNum) {
-            return pageTable->table[index].pageOffset; // Key found, return the corresponding value
+            return pageTable->table[index].pageData; // Key found, return the corresponding value
         }
         index = (index + 1) % pageTable->size;
     }
     
-    return -1; // Key not found
+    return NULL; // Key not found
 }
 
 
