@@ -4,19 +4,17 @@
 typedef struct PageEntry{
     PageNumber pageNum;
     char* pageData;
-    int occupied; // Flag to indicate whether the slot is occupied
 } PageEntry;
 
 typedef struct PageTable {
     PageEntry *table;
+    int capacity;
     int size;
-    int actualSize;
 } PageTable;
 
-extern void initPageTable(PageTable *pageTable, int size);
-int hashPage(int pageNum, int size);
-extern int addPage(PageTable *pageTable, PageNumber pageNum, char* pageData);
-extern char* getPage(PageTable *pageTable, PageNumber pageNum);
-extern int removePage(PageTable *pageTable, PageNumber pageNum);
-extern void clearTable(PageTable *pageTable);
-extern bool isTableFull(PageTable *pageTable);
+extern void initPageTable(BM_BufferPool *const bm, int capacity);
+extern int addPage(BM_BufferPool *const bm, BM_PageHandle *const page);
+extern void getPage(BM_BufferPool *const bm, BM_PageHandle *const page);
+extern int removePage(BM_BufferPool *const bm, PageNumber pageNum);
+extern bool isTableFull(BM_BufferPool *const bm);
+int hashPage(PageTable * pageTable, PageNumber pageNum);
