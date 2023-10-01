@@ -4,6 +4,8 @@
 typedef struct PageEntry{
     PageNumber pageNum;
     char* pageData;
+    int pin;
+    bool dirty;
 } PageEntry;
 
 typedef struct PageTable {
