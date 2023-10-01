@@ -52,12 +52,14 @@ void getPage(BM_BufferPool *const bm, BM_PageHandle *const page){
 
     // Calculate the hash index for the given page number
     int index = hashPage(pageTable, page->pageNum);
-
+    int initialIndex = index; 
     // Linear probing to find the page
     while (pageTable->table[index].pageNum != page->pageNum && pageTable->table[index].pageNum != -1) {
         index = (index + 1) % pageTable->capacity; // Move to the next slot (wrap around if necessary)
+
+        if(index==initialIndex) //break if couldn't find index after searching all the table
+            break;
     }
-    printf("getPage %d\n", index);
 
     // Check if the page is found
     if (pageTable->table[index].pageNum == page->pageNum) {
