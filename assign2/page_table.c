@@ -15,13 +15,15 @@ void initPageTable(BM_BufferPool *const bm, int capacity){
     for (int i = 0; i < capacity; ++i) {
         pageTable->table[i].pageNum = -1; // initially all pages are unoccupied
         pageTable->table[i].pageData = (char *)bm->mgmtData + sizeof(PageTable) + sizeof(PageEntry) * capacity + i*PAGE_SIZE;
+        pageTable->table[i].dirty = false;
+        pageTable->table[i].pin = 0;
     }
     pageTable->capacity = capacity;
     pageTable->size = 0;
     bm->mgmtData = (void *)pageTable;
 }
 
-int addPage(BM_BufferPool *const bm, BM_PageHandle *const page){
+int writePage(BM_BufferPool *const bm, BM_PageHandle *const page){
     // Retrieve the PageTable from bm->mgmtData
     PageTable *pageTable = (PageTable *)bm->mgmtData;
 
@@ -46,7 +48,7 @@ int addPage(BM_BufferPool *const bm, BM_PageHandle *const page){
     return index;
 }
 
-void getPage(BM_BufferPool *const bm, BM_PageHandle *const page){
+void readPage(BM_BufferPool *const bm, BM_PageHandle *const page){
     // Retrieve the PageTable from bm->mgmtData
     PageTable *pageTable = (PageTable *)bm->mgmtData;
 
@@ -71,7 +73,7 @@ void getPage(BM_BufferPool *const bm, BM_PageHandle *const page){
     }
 }
 
-int removePage(BM_BufferPool *const bm, PageNumber pageNum) {
+int deletePage(BM_BufferPool *const bm, PageNumber pageNum) {
     // Retrieve the PageTable from bm->mgmtData
     PageTable *pageTable = (PageTable *)bm->mgmtData;
 
