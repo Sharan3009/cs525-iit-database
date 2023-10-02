@@ -81,13 +81,19 @@ int deletePage(BM_BufferPool *const bm, PageNumber pageNum) {
     if(index==-1){
         return index;
     }
+
+    PageEntry page = pageTable->table[index];
     // Check if the page with pageNum is found
-    if (pageTable->table[index].pageNum == pageNum && pageTable->table[index].fixCount == 0 && pageTable->table[index].dirty == false) {
+    if (page.pageNum == pageNum) {
         // Page found, mark the entry as unoccupied (-1 for pageNum)
-        pageTable->table[index].pageNum = -1;
+        page.pageNum = -1;
 
         // Free the memory associated with the removed PageEntry
-        memset(pageTable->table[index].pageData, '\0', PAGE_SIZE);
+        memset(page.pageData, '\0', PAGE_SIZE);
+
+        //Free fixCount and dirty bit
+        page.fixCount = 0;
+        page.dirty = false;
 
         // Update the size of the PageTable and return index
         pageTable->size--;
