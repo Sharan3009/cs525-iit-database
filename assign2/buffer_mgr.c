@@ -60,7 +60,7 @@ RC forceFlushPool(BM_BufferPool *const bm){
 
 // Buffer Manager Interface Access Pages
 RC markDirty (BM_BufferPool *const bm, BM_PageHandle *const page){
-    int index = writePage(bm, page);
+    int index = putPage(bm, page);
     if(index==-1){
         return RC_WRITE_FAILED;
     }
@@ -68,7 +68,7 @@ RC markDirty (BM_BufferPool *const bm, BM_PageHandle *const page){
     return RC_OK;
 }
 RC unpinPage (BM_BufferPool *const bm, BM_PageHandle *const page){
-    int index = readPage(bm, page);
+    int index = hasPage(bm, page->pageNum);
     if(index==-1)
         return RC_WRITE_FAILED;
     decrementPageFixCount(bm, index);
@@ -84,7 +84,7 @@ RC forcePage (BM_BufferPool *const bm, BM_PageHandle *const page){
     openPageFile(bm->pageFile, &fh);
 
     // writing dirty data
-    int index = readPage(bm, page);
+    int index = getPage(bm, page);
     if(index==-1)
         return RC_WRITE_FAILED;
     strcpy(ph, pageTable->table[index].pageData);
@@ -99,20 +99,19 @@ RC forcePage (BM_BufferPool *const bm, BM_PageHandle *const page){
 RC pinPage (BM_BufferPool *const bm, BM_PageHandle *const page, 
 		const PageNumber pageNum){
     page->pageNum = pageNum;
-    int index = readPage(bm, page);
+    int index = hasPage(bm, page->pageNum);
     if(index==-1){
-        PageTable* pageTable = getPageTable(bm);
         // initialize filehandle variables
         SM_FileHandle fh;
         SM_PageHandle ph = (SM_PageHandle) malloc(PAGE_SIZE);
 
         // open file from harddisk to start reading
         openPageFile(bm->pageFile, &fh);
-        ensureCapacity(pageNum, &fh);
+        ensureCapacity(pageNum+1, &fh);
         readBlock(pageNum, &fh, ph);
         page->data = ph;
-        writePage(bm, page);
-        free(ph);
+        index = putPage(bm, page);
+        closePageFile(&fh);
     }
     incrementPageFixCount(bm, index);
     return RC_OK;
