@@ -39,6 +39,7 @@ RC forceFlushPool(BM_BufferPool *const bm){
     // initialize filehandle variables
     SM_FileHandle fh;
     SM_PageHandle ph = (SM_PageHandle) malloc(PAGE_SIZE);
+    memset(ph, '\0', PAGE_SIZE);
 
     // open file from harddisk to start writing
     openPageFile(bm->pageFile, &fh);
@@ -79,6 +80,7 @@ RC forcePage (BM_BufferPool *const bm, BM_PageHandle *const page){
     // initialize filehandle variables
     SM_FileHandle fh;
     SM_PageHandle ph = (SM_PageHandle) malloc(PAGE_SIZE);
+    memset(ph, '\0', PAGE_SIZE);
 
     // open file from harddisk to start writing
     openPageFile(bm->pageFile, &fh);
