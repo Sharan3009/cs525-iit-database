@@ -10,9 +10,11 @@
 
 RC initBufferPool(BM_BufferPool *const bm, const char *const pageFileName, 
 		const int numPages, ReplacementStrategy strategy, void *stratData){
+    // initializing bm properties
     bm->pageFile = strdup(pageFileName);
     bm->numPages = numPages;
     bm->strategy = strategy;
+    // initializing pagetable
     initPageTable(bm, numPages);
     return RC_OK;
 }
@@ -63,18 +65,22 @@ RC forceFlushPool(BM_BufferPool *const bm){
 
 // Buffer Manager Interface Access Pages
 RC markDirty (BM_BufferPool *const bm, BM_PageHandle *const page){
+    // update the content in the pool
     int index = putPage(bm, page);
     if(index==-1){
         return RC_WRITE_FAILED;
     }
+    // mark the page as dirty
     markPageDirty(bm, index);
     return RC_OK;
 }
 
 RC unpinPage (BM_BufferPool *const bm, BM_PageHandle *const page){
+    // check if the given pageNum is in the pool
     int index = hasPage(bm, page->pageNum);
     if(index==-1)
         return RC_WRITE_FAILED;
+    // if yes then decrement the fix count
     decrementPageFixCount(bm, index);
     return RC_OK;
 }
