@@ -123,16 +123,16 @@ void unmarkPageDirty(BM_BufferPool *const bm, int pageIndex){
     changePageDirty(bm, pageIndex, false);
 }
 
+PageTable* getPageTable(BM_BufferPool *const bm){
+    return (PageTable *)bm->mgmtData;
+}
+
 static void changePageFixCount(BM_BufferPool *const bm, int pageIndex, int val){
     getPageTable(bm)->table[pageIndex].fixCount += val;
 }
 
 static void changePageDirty(BM_BufferPool *const bm, int pageIndex, bool boolean){
     getPageTable(bm)->table[pageIndex].dirty = boolean;
-}
-
-static PageTable* getPageTable(BM_BufferPool *const bm){
-    return (PageTable *)bm->mgmtData;
 }
 
 static bool isTableFull(BM_BufferPool *const bm){
