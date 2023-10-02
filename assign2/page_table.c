@@ -27,15 +27,19 @@ int writePage(BM_BufferPool *const bm, BM_PageHandle *const page){
     // Retrieve the PageTable from bm->mgmtData
     PageTable *pageTable = (PageTable *)bm->mgmtData;
 
-    if(isTableFull(bm))
-        return -1;
+    int index = readPage(bm, page); // check if pageNum is already in the table
 
-    // Calculate the hash index for the given page number
-    int index = hashPage(pageTable, page->pageNum);
+    if(index==-1){ // if its not then try allocate new space
+        if(isTableFull(bm))
+            return -1;
 
-    // Linear probing to find the next available slot
-    while (pageTable->table[index].pageNum != -1) {
-        index = (index + 1) % pageTable->capacity; // Move to the next slot (wrap around if necessary)
+        // Calculate the hash index for the given page number
+        index = hashPage(pageTable, page->pageNum);
+
+        // Linear probing to find the next available slot
+        while (pageTable->table[index].pageNum != -1) {
+            index = (index + 1) % pageTable->capacity; // Move to the next slot (wrap around if necessary)
+        }
     }
 
     // Insert the entry into the found slot
@@ -48,7 +52,7 @@ int writePage(BM_BufferPool *const bm, BM_PageHandle *const page){
     return index;
 }
 
-void readPage(BM_BufferPool *const bm, BM_PageHandle *const page){
+int readPage(BM_BufferPool *const bm, BM_PageHandle *const page){
     // Retrieve the PageTable from bm->mgmtData
     PageTable *pageTable = (PageTable *)bm->mgmtData;
 
@@ -66,11 +70,12 @@ void readPage(BM_BufferPool *const bm, BM_PageHandle *const page){
     // Check if the page is found
     if (pageTable->table[index].pageNum == page->pageNum) {
         // Page found, populate BM_PageHandle with page data
-        page->data = pageTable->table[index].pageData;
-    } else {
-        // Page not found, mark pageNum as -1 to indicate a page not found
-        page->pageNum = -1;
+        strcpy(page->data, pageTable->table[index].pageData);
+
+        return index; // return index in the pagetable
     }
+    // Page not found, return -1
+    return -1;
 }
 
 int deletePage(BM_BufferPool *const bm, PageNumber pageNum) {
@@ -91,7 +96,7 @@ int deletePage(BM_BufferPool *const bm, PageNumber pageNum) {
         pageTable->table[index].pageNum = -1;
 
         // Free the memory associated with the removed PageEntry
-        memset(pageTable->table[index].pageData, 0, PAGE_SIZE);
+        memset(pageTable->table[index].pageData, '\0', PAGE_SIZE);
 
         // Update the size of the PageTable and return index
         pageTable->size--;
@@ -100,6 +105,11 @@ int deletePage(BM_BufferPool *const bm, PageNumber pageNum) {
 
     // Page not found, return an error code (-1)
     return -1; // -1 indicates failure (page not found)
+}
+
+PageEntry* getPageTable(BM_BufferPool *const bm){
+    PageTable *pageTable = (PageTable *)bm->mgmtData;
+    return pageTable->table;
 }
 
 bool isTableFull(BM_BufferPool *const bm){
