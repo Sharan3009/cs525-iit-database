@@ -15,15 +15,15 @@ typedef struct PageTable {
 } PageTable;
 
 extern void initPageTable(BM_BufferPool *const bm, int capacity);
-extern int writePage(BM_BufferPool *const bm, BM_PageHandle *const page);
-extern int readPage(BM_BufferPool *const bm, BM_PageHandle *const page);
-extern int deletePage(BM_BufferPool *const bm, PageNumber pageNum);
+extern int putPage(BM_BufferPool *const bm, BM_PageHandle *const page);
+extern int getPage(BM_BufferPool *const bm, BM_PageHandle *const page);
+extern int removePage(BM_BufferPool *const bm, PageNumber pageNum);
+extern int hasPage(BM_BufferPool *const bm, PageNumber pageNum);
 extern void incrementPageFixCount(BM_BufferPool *const bm, int pageIndex);
 extern void decrementPageFixCount(BM_BufferPool *const bm, int pageIndex);
 extern void markPageDirty(BM_BufferPool *const bm, int pageIndex);
 extern void unmarkPageDirty(BM_BufferPool *const bm, int pageIndex);
 extern PageTable* getPageTable(BM_BufferPool *const bm);
-static int hasPage(BM_BufferPool *const bm, PageNumber pageNum);
 static void changePageFixCount(BM_BufferPool *const bm, int pageIndex, int val);
 static void changePageDirty(BM_BufferPool *const bm, int pageIndex, bool boolean);
 static bool isTableFull(BM_BufferPool *const bm);

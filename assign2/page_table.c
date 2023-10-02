@@ -23,7 +23,7 @@ void initPageTable(BM_BufferPool *const bm, int capacity){
     bm->mgmtData = (void *)pageTable;
 }
 
-int writePage(BM_BufferPool *const bm, BM_PageHandle *const page){
+int putPage(BM_BufferPool *const bm, BM_PageHandle *const page){
     // Retrieve the PageTable from bm->mgmtData
     PageTable *pageTable = getPageTable(bm);
 
@@ -40,31 +40,25 @@ int writePage(BM_BufferPool *const bm, BM_PageHandle *const page){
         while (pageTable->table[index].pageNum != -1) {
             index = (index + 1) % pageTable->capacity; // Move to the next slot (wrap around if necessary)
         }
+        // Update the size of the PageTable
+        pageTable->size++;
     }
 
     // Insert the entry into the found slot
     pageTable->table[index].pageNum = page->pageNum;
     strcpy(pageTable->table[index].pageData, page->data); // Copy page data
-    
-    // Update the size of the PageTable
-    pageTable->size++;
 
     return index;
 }
 
-int readPage(BM_BufferPool *const bm, BM_PageHandle *const page){
+int getPage(BM_BufferPool *const bm, BM_PageHandle *const page){
     // Retrieve the PageTable from bm->mgmtData
     PageTable *pageTable = getPageTable(bm);
 
-    // Calculate the hash index for the given page number
-    int index = generatePageTableHash(pageTable, page->pageNum);
-    int initialIndex = index; 
-    // Linear probing to find the page
-    while (pageTable->table[index].pageNum != page->pageNum && pageTable->table[index].pageNum != -1) {
-        index = (index + 1) % pageTable->capacity; // Move to the next slot (wrap around if necessary)
+    int index = hasPage(bm, page->pageNum); // check if pageNum is already in the table
 
-        if(index==initialIndex) //break if couldn't find index after searching all the table
-            break;
+    if(index==-1){
+        return index;
     }
 
     // Check if the page is found
@@ -82,16 +76,13 @@ int deletePage(BM_BufferPool *const bm, PageNumber pageNum) {
     // Retrieve the PageTable from bm->mgmtData
     PageTable *pageTable = getPageTable(bm);
 
-    // Calculate the hash index for the given page number
-    int index = generatePageTableHash(pageTable, pageNum);
+    int index = hasPage(bm, pageNum); // check if pageNum is already in the table
 
-    // Linear probing to find the PageEntry with the specified pageNum
-    while (pageTable->table[index].pageNum != pageNum && pageTable->table[index].pageNum != -1) {
-        index = (index + 1) % pageTable->capacity; // Move to the next slot (wrap around if necessary)
+    if(index==-1){
+        return index;
     }
-
     // Check if the page with pageNum is found
-    if (pageTable->table[index].pageNum == pageNum) {
+    if (pageTable->table[index].pageNum == pageNum && pageTable->table[index].fixCount == 0 && pageTable->table[index].dirty == false) {
         // Page found, mark the entry as unoccupied (-1 for pageNum)
         pageTable->table[index].pageNum = -1;
 
@@ -103,8 +94,30 @@ int deletePage(BM_BufferPool *const bm, PageNumber pageNum) {
         return index; // Return index of hashtable from where it removed
     }
 
-    // Page not found, return an error code (-1)
     return -1; // -1 indicates failure (page not found)
+}
+
+int hasPage(BM_BufferPool *const bm, PageNumber pageNum){
+    // Retrieve the PageTable from bm->mgmtData
+    PageTable *pageTable = getPageTable(bm);
+
+    // Calculate the hash index for the given page number
+    int index = generatePageTableHash(pageTable, pageNum);
+    int initialIndex = index; 
+    // Linear probing to find the page
+    while (pageTable->table[index].pageNum != pageNum && pageTable->table[index].pageNum != -1) {
+        index = (index + 1) % pageTable->capacity; // Move to the next slot (wrap around if necessary)
+
+        if(index==initialIndex) //break if couldn't find index after searching all the table
+            break;
+    }
+
+    // Check if the page is found
+    if (pageTable->table[index].pageNum == pageNum) {
+        return index; // return index in the pagetable
+    }
+    // Page not found, return -1
+    return -1;
 }
 
 void incrementPageFixCount(BM_BufferPool *const bm, int pageIndex){
@@ -125,29 +138,6 @@ void unmarkPageDirty(BM_BufferPool *const bm, int pageIndex){
 
 PageTable* getPageTable(BM_BufferPool *const bm){
     return (PageTable *)bm->mgmtData;
-}
-
-static int hasPage(BM_BufferPool *const bm, PageNumber pageNum){
-    // Retrieve the PageTable from bm->mgmtData
-    PageTable *pageTable = getPageTable(bm);
-
-    // Calculate the hash index for the given page number
-    int index = generatePageTableHash(pageTable, pageNum);
-    int initialIndex = index; 
-    // Linear probing to find the page
-    while (pageTable->table[index].pageNum != pageNum && pageTable->table[index].pageNum != -1) {
-        index = (index + 1) % pageTable->capacity; // Move to the next slot (wrap around if necessary)
-
-        if(index==initialIndex) //break if couldn't find index after searching all the table
-            break;
-    }
-
-    // Check if the page is found
-    if (pageTable->table[index].pageNum == pageNum) {
-        return index; // return index in the pagetable
-    }
-    // Page not found, return -1
-    return -1;
 }
 
 static void changePageFixCount(BM_BufferPool *const bm, int pageIndex, int val){
