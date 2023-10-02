@@ -49,7 +49,7 @@ RC forceFlushPool(BM_BufferPool *const bm){
     // writing dirty data
     for(int i=0;i<pageTable->capacity;i++){
         PageEntry entry = pageTable->table[i];
-        if(entry.dirty){
+        if(entry.dirty && entry.fixCount==0){
             strcpy(ph, entry.pageData);
             writeBlock(entry.pageNum, &fh, ph);
             unmarkPageDirty(bm, i);
