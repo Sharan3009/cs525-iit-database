@@ -105,15 +105,15 @@ RC pinPage (BM_BufferPool *const bm, BM_PageHandle *const page,
     if(index==-1){
         // initialize filehandle variables
         SM_FileHandle fh;
-        SM_PageHandle ph = (SM_PageHandle) malloc(PAGE_SIZE);
+        page->data = (char *) malloc(PAGE_SIZE);
 
-        // open file from harddisk to start reading
+        // readBlock from the file on disk
         openPageFile(bm->pageFile, &fh);
         ensureCapacity(pageNum+1, &fh);
-        readBlock(pageNum, &fh, ph);
-        page->data = ph;
-        index = putPage(bm, page);
+        readBlock(pageNum, &fh, page->data);
         closePageFile(&fh);
+
+        index = putPage(bm, page);
     }
     incrementPageFixCount(bm, index);
     return RC_OK;
