@@ -16,6 +16,7 @@ RC initBufferPool(BM_BufferPool *const bm, const char *const pageFileName,
     initPageTable(bm, numPages);
     return RC_OK;
 }
+
 RC shutdownBufferPool(BM_BufferPool *const bm){
 
     // get pageTable contents
@@ -33,6 +34,7 @@ RC shutdownBufferPool(BM_BufferPool *const bm){
     free(bm->mgmtData);
     return RC_OK;
 }
+
 RC forceFlushPool(BM_BufferPool *const bm){
 
     PageTable* pageTable = getPageTable(bm);
@@ -68,6 +70,7 @@ RC markDirty (BM_BufferPool *const bm, BM_PageHandle *const page){
     markPageDirty(bm, index);
     return RC_OK;
 }
+
 RC unpinPage (BM_BufferPool *const bm, BM_PageHandle *const page){
     int index = hasPage(bm, page->pageNum);
     if(index==-1)
@@ -75,6 +78,7 @@ RC unpinPage (BM_BufferPool *const bm, BM_PageHandle *const page){
     decrementPageFixCount(bm, index);
     return RC_OK;
 }
+
 RC forcePage (BM_BufferPool *const bm, BM_PageHandle *const page){
     PageTable* pageTable = getPageTable(bm);
     // initialize filehandle variables
@@ -98,6 +102,7 @@ RC forcePage (BM_BufferPool *const bm, BM_PageHandle *const page){
     closePageFile(&fh);
     return RC_OK;
 }
+
 RC pinPage (BM_BufferPool *const bm, BM_PageHandle *const page, 
 		const PageNumber pageNum){
     page->pageNum = pageNum;
@@ -121,15 +126,49 @@ RC pinPage (BM_BufferPool *const bm, BM_PageHandle *const page,
 
 // Statistics Interface
 PageNumber *getFrameContents (BM_BufferPool *const bm){
-    return RC_OK;
+
+    PageTable *pageTable = getPageTable(bm);
+    // Allocate memory for the frame contents array
+    PageNumber *frameContents = (PageNumber *)malloc(bm->numPages * sizeof(PageNumber));
+
+    // Iterate through the page table and populate the frameContents array
+    for (int i = 0; i < bm->numPages; i++) {
+        if (pageTable->table[i].pageNum != -1) {
+            frameContents[i] = pageTable->table[i].pageNum;
+        } else {
+            frameContents[i] = NO_PAGE;
+        }
+    }
+
+    return frameContents;
 }
+
 bool *getDirtyFlags (BM_BufferPool *const bm){
-    bool *dirtyFlag = (bool *)malloc(sizeof(bool));
-    return dirtyFlag;
+
+    PageTable *pageTable = getPageTable(bm);
+    // Allocate memory for the dirty flags array
+    bool *dirtyFlags = (bool *)malloc(bm->numPages * sizeof(bool));
+
+    // Iterate through the page table and populate the dirtyFlags array
+    for (int i = 0; i < bm->numPages; i++) {
+        dirtyFlags[i] = pageTable->table[i].dirty;
+    }
+    
+    return dirtyFlags;
 }
+
 int *getFixCounts (BM_BufferPool *const bm){
-    int *fixCount = (int *)malloc(sizeof(int));
-    return fixCount;
+
+    PageTable *pageTable = getPageTable(bm);
+    // Allocate memory for the dirty flags array
+    int *fixCounts = (int *)malloc(bm->numPages * sizeof(int));
+
+    // Iterate through the page table and populate the dirtyFlags array
+    for (int i = 0; i < bm->numPages; i++) {
+        fixCounts[i] = pageTable->table[i].fixCount;
+    }
+    
+    return fixCounts;
 }
 int getNumReadIO (BM_BufferPool *const bm){
     return 0;
