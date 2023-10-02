@@ -9,14 +9,14 @@ void initPageTable(BM_BufferPool *const bm, int capacity){
 
     bm->mgmtData = malloc(sizeof(PageTable) + capacity*sizeof(PageEntry) + capacity*PAGE_SIZE);
 
-    PageTable *pageTable = (PageTable *)bm->mgmtData;
+    PageTable *pageTable = getPageTable(bm);
     pageTable->table = (PageEntry *)((char *)bm->mgmtData + sizeof(PageTable));
 
     for (int i = 0; i < capacity; ++i) {
         pageTable->table[i].pageNum = -1; // initially all pages are unoccupied
         pageTable->table[i].pageData = (char *)bm->mgmtData + sizeof(PageTable) + sizeof(PageEntry) * capacity + i*PAGE_SIZE;
         pageTable->table[i].dirty = false;
-        pageTable->table[i].pin = 0;
+        pageTable->table[i].fixCount = 0;
     }
     pageTable->capacity = capacity;
     pageTable->size = 0;
@@ -25,7 +25,7 @@ void initPageTable(BM_BufferPool *const bm, int capacity){
 
 int writePage(BM_BufferPool *const bm, BM_PageHandle *const page){
     // Retrieve the PageTable from bm->mgmtData
-    PageTable *pageTable = (PageTable *)bm->mgmtData;
+    PageTable *pageTable = getPageTable(bm);
 
     int index = readPage(bm, page); // check if pageNum is already in the table
 
@@ -54,7 +54,7 @@ int writePage(BM_BufferPool *const bm, BM_PageHandle *const page){
 
 int readPage(BM_BufferPool *const bm, BM_PageHandle *const page){
     // Retrieve the PageTable from bm->mgmtData
-    PageTable *pageTable = (PageTable *)bm->mgmtData;
+    PageTable *pageTable = getPageTable(bm);
 
     // Calculate the hash index for the given page number
     int index = hashPage(pageTable, page->pageNum);
@@ -80,7 +80,7 @@ int readPage(BM_BufferPool *const bm, BM_PageHandle *const page){
 
 int deletePage(BM_BufferPool *const bm, PageNumber pageNum) {
     // Retrieve the PageTable from bm->mgmtData
-    PageTable *pageTable = (PageTable *)bm->mgmtData;
+    PageTable *pageTable = getPageTable(bm);
 
     // Calculate the hash index for the given page number
     int index = hashPage(pageTable, pageNum);
@@ -107,13 +107,36 @@ int deletePage(BM_BufferPool *const bm, PageNumber pageNum) {
     return -1; // -1 indicates failure (page not found)
 }
 
-PageEntry* getPageTable(BM_BufferPool *const bm){
-    PageTable *pageTable = (PageTable *)bm->mgmtData;
-    return pageTable->table;
+void incrementPageFixCount(BM_BufferPool *const bm, int pageIndex){
+    changePageFixCount(bm, pageIndex, 1);
+}
+
+void decrementPageFixCount(BM_BufferPool *const bm, int pageIndex){
+    changePageFixCount(bm, pageIndex, -1);
+}
+
+void markPageDirty(BM_BufferPool *const bm, int pageIndex){
+    changePageDirty(bm, pageIndex, true);
+}
+
+void unmarkPageDirty(BM_BufferPool *const bm, int pageIndex){
+    changePageDirty(bm, pageIndex, false);
+}
+
+void changePageFixCount(BM_BufferPool *const bm, int pageIndex, int val){
+    getPageTable(bm)->table[pageIndex].fixCount += val;
+}
+
+void changePageDirty(BM_BufferPool *const bm, int pageIndex, bool boolean){
+    getPageTable(bm)->table[pageIndex].dirty = boolean;
+}
+
+PageTable* getPageTable(BM_BufferPool *const bm){
+    return (PageTable *)bm->mgmtData;
 }
 
 bool isTableFull(BM_BufferPool *const bm){
-    PageTable *pageTable = (PageTable *)bm->mgmtData;
+    PageTable *pageTable = getPageTable(bm);
 
     if(pageTable->size == pageTable->capacity)
         return true;

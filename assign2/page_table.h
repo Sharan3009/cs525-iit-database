@@ -4,7 +4,7 @@
 typedef struct PageEntry{
     PageNumber pageNum;
     char* pageData;
-    int pin;
+    int fixCount;
     bool dirty;
 } PageEntry;
 
@@ -18,6 +18,12 @@ extern void initPageTable(BM_BufferPool *const bm, int capacity);
 extern int writePage(BM_BufferPool *const bm, BM_PageHandle *const page);
 extern int readPage(BM_BufferPool *const bm, BM_PageHandle *const page);
 extern int deletePage(BM_BufferPool *const bm, PageNumber pageNum);
-extern PageEntry* getPageTable(BM_BufferPool *const bm);
+extern void incrementPageFixCount(BM_BufferPool *const bm, int pageIndex);
+extern void decrementPageFixCount(BM_BufferPool *const bm, int pageIndex);
+extern void markPageDirty(BM_BufferPool *const bm, int pageIndex);
+extern void unmarkPageDirty(BM_BufferPool *const bm, int pageIndex);
+void changePageFixCount(BM_BufferPool *const bm, int pageIndex, int val);
+void changePageDirty(BM_BufferPool *const bm, int pageIndex, bool boolean);
+PageTable* getPageTable(BM_BufferPool *const bm);
 bool isTableFull(BM_BufferPool *const bm);
 int hashPage(PageTable * pageTable, PageNumber pageNum);
