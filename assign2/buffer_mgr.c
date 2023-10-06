@@ -137,7 +137,7 @@ RC pinPage (BM_BufferPool *const bm, BM_PageHandle *const page,
             // evict page from replacement strategy
             BM_PageHandle *evictedPage = MAKE_PAGE_HANDLE();
             evictedPage->pageNum = evictPage(bm);
-            evictedPage->data = malloc(sizeof(PAGE_SIZE));
+            evictedPage->data = (char *)malloc(PAGE_SIZE);
 
             // get Data of the evicted page from page_table
             index = getPage(bm, evictedPage);
