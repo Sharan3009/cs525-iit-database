@@ -17,7 +17,7 @@ typedef struct PageTable {
 extern void initPageTable(BM_BufferPool *const bm, int capacity);
 extern int putPage(BM_BufferPool *const bm, BM_PageHandle *const page);
 extern int getPage(BM_BufferPool *const bm, BM_PageHandle *const page);
-extern int removePage(BM_BufferPool *const bm, PageNumber pageNum);
+extern int deletePage(BM_BufferPool *const bm, PageNumber pageNum);
 extern int hasPage(BM_BufferPool *const bm, PageNumber pageNum);
 extern void incrementPageFixCount(BM_BufferPool *const bm, int pageIndex);
 extern void decrementPageFixCount(BM_BufferPool *const bm, int pageIndex);
