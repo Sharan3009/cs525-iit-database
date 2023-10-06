@@ -7,6 +7,7 @@
 #include "dt.h"
 #include "page_table.h"
 #include "storage_mgr.h"
+#include "replacement_strategy.h"
 
 RC initBufferPool(BM_BufferPool *const bm, const char *const pageFileName, 
 		const int numPages, ReplacementStrategy strategy, void *stratData){
@@ -16,6 +17,8 @@ RC initBufferPool(BM_BufferPool *const bm, const char *const pageFileName,
     bm->strategy = strategy;
     // initializing pagetable
     initPageTable(bm, numPages);
+    // initialize replacement strategy
+    initReplacementStrategy(bm);
     return RC_OK;
 }
 
@@ -123,8 +126,32 @@ RC pinPage (BM_BufferPool *const bm, BM_PageHandle *const page,
         ensureCapacity(pageNum+1, &fh);
         readBlock(pageNum, &fh, page->data);
         closePageFile(&fh);
-
         index = putPage(bm, page);
+        // if index=-1 or pageTable is full
+        if(index == -1){
+            PageTable *pageTable = getPageTable(bm); //get pageTable
+
+            // evict page from replacement strategy
+            BM_PageHandle *evictedPage = MAKE_PAGE_HANDLE();
+            evictedPage->pageNum = evictPage(bm);
+            evictedPage->data = malloc(sizeof(PAGE_SIZE));
+
+            // get Data of the evicted page from page_table
+            index = getPage(bm, evictedPage);
+            if(pageTable->table[index].dirty){ // if dirty then force write
+                forcePage(bm, evictedPage);
+            }
+
+            // delete page from the table
+            deletePage(bm, evictedPage->pageNum);
+            free(evictedPage);
+
+            // try again putting page
+            index = putPage(bm, page);
+        } 
+        
+        // whenever we add page in page_table, we admit page to replacement strategy
+        admitPage(bm, page->pageNum);
     }
     incrementPageFixCount(bm, index);
     return RC_OK;
