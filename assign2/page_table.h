@@ -12,6 +12,8 @@ typedef struct PageTable {
     PageEntry *table;
     int capacity;
     int size;
+    int readIOCount;
+    int writeIOCount;
 } PageTable;
 
 extern void initPageTable(BM_BufferPool *const bm, int capacity);
@@ -23,6 +25,8 @@ extern void incrementPageFixCount(BM_BufferPool *const bm, int pageIndex);
 extern void decrementPageFixCount(BM_BufferPool *const bm, int pageIndex);
 extern void markPageDirty(BM_BufferPool *const bm, int pageIndex);
 extern void unmarkPageDirty(BM_BufferPool *const bm, int pageIndex);
+extern void incrementReadCount(BM_BufferPool *const bm);
+extern void incrementWriteCount(BM_BufferPool *const bm);
 extern PageTable* getPageTable(BM_BufferPool *const bm);
 static void changePageFixCount(BM_BufferPool *const bm, int pageIndex, int val);
 static void changePageDirty(BM_BufferPool *const bm, int pageIndex, bool boolean);

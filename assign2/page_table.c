@@ -20,6 +20,8 @@ void initPageTable(BM_BufferPool *const bm, int capacity){
     }
     pageTable->capacity = capacity;
     pageTable->size = 0;
+    pageTable->readIOCount = 0;
+    pageTable->writeIOCount = 0;
     bm->mgmtData = (void *)pageTable;
 }
 
@@ -140,6 +142,16 @@ void markPageDirty(BM_BufferPool *const bm, int pageIndex){
 
 void unmarkPageDirty(BM_BufferPool *const bm, int pageIndex){
     changePageDirty(bm, pageIndex, false);
+}
+
+void incrementReadCount(BM_BufferPool *const bm){
+    PageTable *pageTable = getPageTable(bm);
+    pageTable->readIOCount++;
+}
+
+void incrementWriteCount(BM_BufferPool *const bm){
+    PageTable *pageTable = getPageTable(bm);
+    pageTable->writeIOCount++;
 }
 
 PageTable* getPageTable(BM_BufferPool *const bm){
