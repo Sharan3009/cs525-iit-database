@@ -20,6 +20,7 @@ void initReplacementStrategy(BM_BufferPool *const bm){
     }
 }
 
+// generic public function to get page according to strategy
 int evictPage(BM_BufferPool *const bm){
     switch (bm->strategy){
         case RS_FIFO:
@@ -29,12 +30,15 @@ int evictPage(BM_BufferPool *const bm){
 }
 
 static int evictFifo(BM_BufferPool *const bm){
+
     Node* temp = list->head;
     Node* prev = NULL;
     PageTable *pageTable = getPageTable(bm);
+
+    // get index in PageTable of the page
     int index = hasPage(bm, temp->data);
 
-    jump:
+    // find page whose fixCount is 0
     while (temp != NULL && pageTable->table[index].fixCount>0) {
         prev = temp;
         temp = temp->next;
@@ -44,7 +48,7 @@ static int evictFifo(BM_BufferPool *const bm){
 
     // If the node is not found
     if (temp == NULL) {
-        goto jump;
+        return -1;
     }
 
     // Remove the node from the list
@@ -59,13 +63,17 @@ static int evictFifo(BM_BufferPool *const bm){
             list->tail = prev;
         }
     }
+
+    // store pageNum in variable
     PageNumber pageNum = temp->data;
+
     // Free the memory occupied by the deleted node
     free(temp);
     return pageNum;
 }
 
 
+// generic public function to add page according to strategy
 void admitPage(BM_BufferPool *const bm, PageNumber pageNum){
     switch (bm->strategy){
         case RS_FIFO:
