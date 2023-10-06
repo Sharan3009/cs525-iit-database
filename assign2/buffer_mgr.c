@@ -45,8 +45,6 @@ RC forceFlushPool(BM_BufferPool *const bm){
     PageTable* pageTable = getPageTable(bm);
     // initialize filehandle variables
     SM_FileHandle fh;
-    SM_PageHandle ph = (SM_PageHandle) malloc(PAGE_SIZE);
-    memset(ph, '\0', PAGE_SIZE);
 
     // open file from harddisk to start writing
     openPageFile(bm->pageFile, &fh);
@@ -55,13 +53,16 @@ RC forceFlushPool(BM_BufferPool *const bm){
     for(int i=0;i<pageTable->capacity;i++){
         PageEntry entry = pageTable->table[i];
         if(entry.dirty && entry.fixCount==0){
-            strcpy(ph, entry.pageData);
-            writeBlock(entry.pageNum, &fh, ph);
-            unmarkPageDirty(bm, i);
+            BM_PageHandle *page = MAKE_PAGE_HANDLE();
+            page->pageNum = entry.pageNum;
+            page->data = (char *)malloc(PAGE_SIZE);
+
+            strcpy(page->data, entry.pageData);
+            forcePage(bm, page);
+            free(page);
         }
     }
 
-    free(ph);
     // close file after writing
     closePageFile(&fh);
 }
@@ -104,6 +105,7 @@ RC forcePage (BM_BufferPool *const bm, BM_PageHandle *const page){
         return RC_WRITE_FAILED;
     strcpy(ph, pageTable->table[index].pageData);
     writeBlock(pageTable->table[index].pageNum, &fh, ph);
+    incrementWriteCount(bm);
     unmarkPageDirty(bm, index);
 
     free(ph);
@@ -125,6 +127,7 @@ RC pinPage (BM_BufferPool *const bm, BM_PageHandle *const page,
         openPageFile(bm->pageFile, &fh);
         ensureCapacity(pageNum+1, &fh);
         readBlock(pageNum, &fh, page->data);
+        incrementReadCount(bm);
         closePageFile(&fh);
         index = putPage(bm, page);
         // if index=-1 or pageTable is full
@@ -204,8 +207,8 @@ int *getFixCounts (BM_BufferPool *const bm){
     return fixCounts;
 }
 int getNumReadIO (BM_BufferPool *const bm){
-    return 0;
+    return getPageTable(bm)->readIOCount;
 }
 int getNumWriteIO (BM_BufferPool *const bm){
-    return 0;
+    return getPageTable(bm)->writeIOCount;
 }
