@@ -10,7 +10,8 @@ void initReplacementStrategy(BM_BufferPool *const bm){
 
     switch (bm->strategy){
         case RS_FIFO:
-            list = (LinkedList*)malloc(sizeof(LinkedList));
+        case RS_LRU:
+            list = (LinkedList*)realloc(list, sizeof(LinkedList));
             list->head = NULL;
             list->tail = NULL;
             break;
@@ -23,6 +24,7 @@ void initReplacementStrategy(BM_BufferPool *const bm){
 PageNumber evictPage(BM_BufferPool *const bm){
     switch (bm->strategy){
         case RS_FIFO:
+        case RS_LRU:
             return evictFifo(bm);
     }
     return -1;
@@ -66,16 +68,42 @@ static PageNumber evictFifo(BM_BufferPool *const bm){
     return pageNum;
 }
 
+static PageNumber evictLru(BM_BufferPool *const bm){
+
+}
+
 
 // generic public function to add page according to strategy
 void admitPage(BM_BufferPool *const bm, PageEntry *entry){
     switch (bm->strategy){
         case RS_FIFO:
+        case RS_LRU:
             admitFifo(entry);
             break;
     }
 }
 
 static void admitFifo(PageEntry *entry){
+    insertAtEnd(list, entry);
+}
+
+static void admitLru(PageEntry *entry){
+    insertAtEnd(list, entry);
+}
+
+
+// generic public function to reorder page according to strategy
+void reorderPage(BM_BufferPool *const bm, PageEntry *entry){
+    switch (bm->strategy){
+        case RS_FIFO:
+            break;
+        case RS_LRU:
+            reorderLru(bm, entry);
+            break;
+    }
+}
+
+static void reorderLru(BM_BufferPool *const bm, PageEntry *entry){
+    deleteNode(list, entry->pageNum);
     insertAtEnd(list, entry);
 }
