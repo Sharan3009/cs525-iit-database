@@ -3,6 +3,7 @@
 
 #include "linkedlist.h"
 
+// Create a new node with given data
 Node* createNode(int data) {
     Node* newNode = (Node*)malloc(sizeof(Node));
     newNode->data = data;
@@ -10,17 +11,33 @@ Node* createNode(int data) {
     return newNode;
 }
 
-void insertAtBeginning(Node** head, int data) {
+// Insert a new node at the beginning of the linked list
+void insertAtBeginning(LinkedList* list, int data) {
     Node* newNode = createNode(data);
-    newNode->next = *head;
-    *head = newNode;
+    if (list->head == NULL) {
+        list->head = list->tail = newNode;
+    } else {
+        newNode->next = list->head;
+        list->head = newNode;
+    }
 }
 
-void deleteNode(Node** head, int data) {
-    Node* temp = *head;
+// Insert a new node at the end of the linked list
+void insertAtEnd(LinkedList* list, int data) {
+    Node* newNode = createNode(data);
+    if (list->head == NULL) {
+        list->head = list->tail = newNode;
+    } else {
+        list->tail->next = newNode;
+        list->tail = newNode;
+    }
+}
+
+// Delete a node with given data from the linked list
+void deleteNode(LinkedList* list, int data) {
+    Node* temp = list->head;
     Node* prev = NULL;
 
-    // Traverse the list to find the node to be deleted
     while (temp != NULL && temp->data != data) {
         prev = temp;
         temp = temp->next;
@@ -33,9 +50,15 @@ void deleteNode(Node** head, int data) {
 
     // Remove the node from the list
     if (prev == NULL) {
-        *head = temp->next;
+        list->head = temp->next;
+        if (list->head == NULL) {
+            list->tail = NULL;
+        }
     } else {
         prev->next = temp->next;
+        if (prev->next == NULL) {
+            list->tail = prev;
+        }
     }
 
     // Free the memory occupied by the deleted node
@@ -43,10 +66,11 @@ void deleteNode(Node** head, int data) {
 }
 
 // Display the elements of the linked list
-void displayList(Node* head) {
-    while (head != NULL) {
-        printf("%d -> ", head->data);
-        head = head->next;
+void displayList(LinkedList* list) {
+    Node* temp = list->head;
+    while (temp != NULL) {
+        printf("%d -> ", temp->data);
+        temp = temp->next;
     }
     printf("NULL\n");
 }
