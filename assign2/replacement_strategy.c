@@ -33,10 +33,13 @@ static int evictFifo(BM_BufferPool *const bm){
     Node* prev = NULL;
     PageTable *pageTable = getPageTable(bm);
     int index = hasPage(bm, temp->data);
+
     jump:
     while (temp != NULL && pageTable->table[index].fixCount>0) {
         prev = temp;
         temp = temp->next;
+        if(temp!=NULL)
+            index = hasPage(bm, temp->data);
     }
 
     // If the node is not found
