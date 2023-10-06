@@ -1,8 +1,11 @@
+#include <stdio.h>
+
 typedef struct Node {
     int data;
     struct Node* next;
 } Node;
 
-extern Node* initQueue();
-extern void enqueue(Node* head, int data);
-extern void dequeue(Node* head);
+extern Node* createNode(int data);
+extern void insertAtBeginning(Node** head, int data);
+extern void deleteNode(Node** head, int data);
+extern void displayList(Node* head);
