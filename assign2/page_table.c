@@ -147,14 +147,14 @@ PageTable* getPageTable(BM_BufferPool *const bm){
 }
 
 static void changePageFixCount(BM_BufferPool *const bm, int pageIndex, int val){
-    PageEntry entry = getPageTable(bm)->table[pageIndex];
-    entry.fixCount+=1;
-    if(entry.fixCount<0)
-        entry.fixCount = 0;
+    PageEntry *entry = &getPageTable(bm)->table[pageIndex];
+    entry->fixCount+=val;
+    if(entry->fixCount<0)
+        entry->fixCount = 0;
 }
 
 static void changePageDirty(BM_BufferPool *const bm, int pageIndex, bool boolean){
-    getPageTable(bm)->table[pageIndex].dirty = boolean;
+    (&getPageTable(bm)->table[pageIndex])->dirty = boolean;
 }
 
 static bool isTableFull(BM_BufferPool *const bm){
