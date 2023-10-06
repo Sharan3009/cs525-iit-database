@@ -1,6 +1,3 @@
-#include "dt.h"
-#include "buffer_mgr.h"
-
 typedef struct Node {
     int data;
     struct Node* next;
