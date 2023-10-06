@@ -1,20 +1,23 @@
 #include "dt.h"
 #include "buffer_mgr.h"
 
-typedef struct PageEntry{
-    PageNumber pageNum;
-    char* pageData;
-    int fixCount;
-    bool dirty;
-} PageEntry;
+#ifndef PAGE_TABLE_H
+#define PAGE_TABLE_H
+    typedef struct PageEntry{
+        PageNumber pageNum;
+        char* pageData;
+        int fixCount;
+        bool dirty;
+    } PageEntry;
 
-typedef struct PageTable {
-    PageEntry *table;
-    int capacity;
-    int size;
-    int readIOCount;
-    int writeIOCount;
-} PageTable;
+    typedef struct PageTable {
+        PageEntry *table;
+        int capacity;
+        int size;
+        int readIOCount;
+        int writeIOCount;
+    } PageTable;
+#endif
 
 extern void initPageTable(BM_BufferPool *const bm, int capacity);
 extern int putPage(BM_BufferPool *const bm, BM_PageHandle *const page);

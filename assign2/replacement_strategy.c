@@ -2,7 +2,6 @@
 #include <stdlib.h>
 
 #include "replacement_strategy.h"
-#include "page_table.h"
 #include "linkedlist.h"
 
 LinkedList* list = NULL;
@@ -21,7 +20,7 @@ void initReplacementStrategy(BM_BufferPool *const bm){
 }
 
 // generic public function to get page according to strategy
-int evictPage(BM_BufferPool *const bm){
+PageNumber evictPage(BM_BufferPool *const bm){
     switch (bm->strategy){
         case RS_FIFO:
             return evictFifo(bm);
@@ -29,21 +28,16 @@ int evictPage(BM_BufferPool *const bm){
     return -1;
 }
 
-static int evictFifo(BM_BufferPool *const bm){
+static PageNumber evictFifo(BM_BufferPool *const bm){
 
     Node* temp = list->head;
     Node* prev = NULL;
     PageTable *pageTable = getPageTable(bm);
 
-    // get index in PageTable of the page
-    int index = hasPage(bm, temp->data);
-
     // find page whose fixCount is 0
-    while (temp != NULL && pageTable->table[index].fixCount>0) {
+    while (temp != NULL && temp->entry->fixCount>0) {
         prev = temp;
         temp = temp->next;
-        if(temp!=NULL)
-            index = hasPage(bm, temp->data);
     }
 
     // If the node is not found
@@ -65,7 +59,7 @@ static int evictFifo(BM_BufferPool *const bm){
     }
 
     // store pageNum in variable
-    PageNumber pageNum = temp->data;
+    PageNumber pageNum = temp->entry->pageNum;
 
     // Free the memory occupied by the deleted node
     free(temp);
@@ -74,14 +68,14 @@ static int evictFifo(BM_BufferPool *const bm){
 
 
 // generic public function to add page according to strategy
-void admitPage(BM_BufferPool *const bm, PageNumber pageNum){
+void admitPage(BM_BufferPool *const bm, PageEntry *entry){
     switch (bm->strategy){
         case RS_FIFO:
-            admitFifo(pageNum);
+            admitFifo(entry);
             break;
     }
 }
 
-static void admitFifo(PageNumber pageNum){
-    insertAtEnd(list, pageNum);
+static void admitFifo(PageEntry *entry){
+    insertAtEnd(list, entry);
 }

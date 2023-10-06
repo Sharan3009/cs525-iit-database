@@ -130,9 +130,9 @@ RC pinPage (BM_BufferPool *const bm, BM_PageHandle *const page,
         incrementReadCount(bm);
         closePageFile(&fh);
         index = putPage(bm, page);
+        PageTable *pageTable = getPageTable(bm); //get pageTable
         // if index=-1 or pageTable is full
         if(index == -1){
-            PageTable *pageTable = getPageTable(bm); //get pageTable
 
             // evict page from replacement strategy
             BM_PageHandle *evictedPage = MAKE_PAGE_HANDLE();
@@ -154,7 +154,7 @@ RC pinPage (BM_BufferPool *const bm, BM_PageHandle *const page,
         } 
         
         // whenever we add page in page_table, we admit page to replacement strategy
-        admitPage(bm, page->pageNum);
+        admitPage(bm, &(pageTable->table[index]));
     }
     incrementPageFixCount(bm, index);
     return RC_OK;

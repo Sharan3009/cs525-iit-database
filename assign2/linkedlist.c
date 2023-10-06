@@ -2,18 +2,19 @@
 #include <stdlib.h>
 
 #include "linkedlist.h"
+#include "buffer_mgr.h"
 
 // Create a new node with given data
-Node* createNode(int data) {
+Node* createNode(PageEntry * entry) {
     Node* newNode = (Node*)malloc(sizeof(Node));
-    newNode->data = data;
+    newNode->entry = entry;
     newNode->next = NULL;
     return newNode;
 }
 
 // Insert a new node at the beginning of the linked list
-void insertAtBeginning(LinkedList* list, int data) {
-    Node* newNode = createNode(data);
+void insertAtBeginning(LinkedList* list, PageEntry * entry) {
+    Node* newNode = createNode(entry);
     if (list->head == NULL) {
         list->head = list->tail = newNode;
     } else {
@@ -23,8 +24,8 @@ void insertAtBeginning(LinkedList* list, int data) {
 }
 
 // Insert a new node at the end of the linked list
-void insertAtEnd(LinkedList* list, int data) {
-    Node* newNode = createNode(data);
+void insertAtEnd(LinkedList* list, PageEntry * entry) {
+    Node* newNode = createNode(entry);
     if (list->head == NULL) {
         list->head = list->tail = newNode;
     } else {
@@ -34,11 +35,11 @@ void insertAtEnd(LinkedList* list, int data) {
 }
 
 // Delete a node with given data from the linked list
-void deleteNode(LinkedList* list, int data) {
+void deleteNode(LinkedList* list, PageNumber pageNum) {
     Node* temp = list->head;
     Node* prev = NULL;
 
-    while (temp != NULL && temp->data != data) {
+    while (temp != NULL && temp->entry->pageNum != pageNum) {
         prev = temp;
         temp = temp->next;
     }
@@ -69,7 +70,7 @@ void deleteNode(LinkedList* list, int data) {
 void displayList(LinkedList* list) {
     Node* temp = list->head;
     while (temp != NULL) {
-        printf("%d -> ", temp->data);
+        printf("%d -> ", temp->entry->pageNum);
         temp = temp->next;
     }
     printf("NULL\n");
