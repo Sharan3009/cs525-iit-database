@@ -1,5 +1,5 @@
 # List of common source files
-COMMON_FILES = storage_mgr.c dberror.c page_directory.c buffer_mgr_stat.c buffer_mgr.c page_table.c linkedlist.c replacement_strategy.c
+COMMON_FILES = storage_mgr.c dberror.c buffer_mgr_stat.c buffer_mgr.c page_table.c linkedlist.c replacement_strategy.c
 
 .PHONY: all
 all: test_assign2_1 test_assign2_2

@@ -4,19 +4,14 @@
 
 #include "storage_mgr.h"
 #include "dberror.h"
-#include "page_directory.h"
 
 #define READ "r"
 #define WRITE "wb+"
 #define READ_WRITE "rb+"
 
 SM_FileHandle currFile;
-SM_PageHandle directory = NULL;
 
 void initStorageManager() {
-    // initialize page directory
-    directory = (SM_PageHandle)malloc(PAGE_SIZE);
-    memset(directory, '\0', PAGE_SIZE);
 }
 
 RC createPageFile(char *fileName){
@@ -41,12 +36,7 @@ RC createPageFile(char *fileName){
     fHandle.curPagePos = 0;
     fHandle.totalNumPages = 0;
 
-    //add empty page directory in the file
-    directory = (SM_PageHandle)realloc(directory, PAGE_SIZE);
-    memset(directory, '\0', PAGE_SIZE);
     RC code;
-    if((code = updatePageDirectory(&fHandle, directory))!=RC_OK)
-        return code;
 
     //added empty page
     if((code = appendEmptyBlock(&fHandle))!=RC_OK)
@@ -70,32 +60,20 @@ RC openPageFile (char *fileName, SM_FileHandle *fHandle){
     fHandle->fileName = fileName;
     fHandle->mgmtInfo = file;
 
-    // load page directory
-    directory = (SM_PageHandle)realloc(directory, PAGE_SIZE);
-    RC code;
-    if((code = readPageDirectory(fHandle, directory))!=RC_OK)
-        return code;
-
     // setting curPagePos
     fHandle->curPagePos = 0;
 
     //setting totalPages
-    fHandle->totalNumPages = 0;
-    for(int i=0;i<PAGE_SIZE;i++){
-        if(directory[i]=='1')
-            fHandle->totalNumPages++;
-    }
-
+    fseek(file, 0, SEEK_END);
+    long long size = ftell(file);
+    fHandle->totalNumPages = size/PAGE_SIZE;
+    fseek(file, 0, SEEK_SET);
     currFile = *fHandle;
 
     return RC_OK;
 }
 
 RC closePageFile (SM_FileHandle *fHandle){
-    //before closing page, make sure directory is saved in the file
-    RC code;
-    if(code = (updatePageDirectory(fHandle, directory))!=RC_OK)
-        return RC_FILE_NOT_FOUND;
     if(fclose(fHandle->mgmtInfo)==0){
         //clear the currFile
         memset(&currFile, 0, sizeof(SM_FileHandle));
@@ -116,10 +94,10 @@ RC readBlock (int pageNum, SM_FileHandle *fHandle, SM_PageHandle memPage){
     if(fHandle==NULL || memPage==NULL)
         return RC_FILE_HANDLE_NOT_INIT;
     // if page is outside the range of directory, or no entry in the directory
-    if(pageNum<0 || pageNum>=fHandle->totalNumPages || directory[pageNum]=='\0')
+    if(pageNum<0 || pageNum>=fHandle->totalNumPages)
         return RC_READ_NON_EXISTING_PAGE;
 
-    long int offset = (pageNum+1)*PAGE_SIZE; //+1 because first page is directory
+    long int offset = (pageNum)*PAGE_SIZE; //+1 because first page is directory
     if(fseek(fHandle->mgmtInfo, offset, 0)==0){
         for(int i=0;i<PAGE_SIZE;i++){
             memPage[i] = fgetc(fHandle->mgmtInfo);
@@ -192,17 +170,16 @@ RC writeBlock (int pageNum, SM_FileHandle *fHandle, SM_PageHandle memPage){
     if(fHandle==NULL || memPage==NULL)
         return RC_FILE_HANDLE_NOT_INIT;
     // if page is outside the range of directory, or capacity is not upto the input pageNum
-    if(pageNum<0 || pageNum>=PAGE_SIZE || ensureCapacity(pageNum, fHandle)!=RC_OK)
+    if(pageNum<0 || ensureCapacity(pageNum, fHandle)!=RC_OK)
         return RC_WRITE_FAILED;
     
-    long int offset = (pageNum+1)*PAGE_SIZE; //+1 is for first page is directory
+    long int offset = (pageNum)*PAGE_SIZE; //+1 is for first page is directory
     if(fseek(fHandle->mgmtInfo, offset, 0)==0){
         for(int i=0;i<PAGE_SIZE;i++){
             fputc(memPage[i], fHandle->mgmtInfo);
         }
-        if(directory[pageNum]=='\0'){
-            directory[pageNum] = '1'; // set index in directory to used
-            fHandle->totalNumPages++; // increase number of total pages
+        if(pageNum >= fHandle->totalNumPages){
+            fHandle->totalNumPages++;
         }
         return RC_OK;
     }
