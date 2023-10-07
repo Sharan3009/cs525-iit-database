@@ -5,10 +5,18 @@
 #include "linkedlist.h"
 
 LinkedList* list = NULL;
-void* stratData = NULL;
+int k = 1; // LRU_K's k
 
 void initReplacementStrategy(BM_BufferPool *const bm, void* stratData){
-    stratData = stratData;
+    // setting k of LRU_K if any
+    if(bm->strategy==RS_LRU_K){
+        if(stratData==NULL || *((int *)stratData)<1){
+            k=1;
+        } else {
+            k = *((int *)stratData);
+        }
+    }
+    //
     switch (bm->strategy){
         case RS_FIFO:
         case RS_LRU:
@@ -29,7 +37,7 @@ PageNumber evictPage(BM_BufferPool *const bm){
         case RS_LRU:
             return evictFromHead(bm);
         case RS_LRU_K:
-            if(stratData==NULL){
+            if(k==1){
                 return evictFromHead(bm);
             }
     }
@@ -83,7 +91,7 @@ void admitPage(BM_BufferPool *const bm, PageEntry *entry){
             insertAtEnd(list, entry);
             break;
         case RS_LRU_K:
-            if(stratData==NULL){
+            if(k==1){
                 insertAtEnd(list, entry);
             }
     }
@@ -99,7 +107,7 @@ void reorderPage(BM_BufferPool *const bm, PageEntry *entry){
             reorderLru(bm, entry);
             break;
         case RS_LRU_K:
-            if(stratData==NULL){
+            if(k==1){
                 reorderLru(bm, entry);
             }
     }
@@ -114,5 +122,5 @@ static void reorderLru(BM_BufferPool *const bm, PageEntry *entry){
 void clearStrategyData(BM_BufferPool *const bm){
     free(list);
     list = NULL;
-    stratData = NULL;
+    k = 1;
 }
