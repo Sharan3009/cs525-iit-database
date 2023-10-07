@@ -11,21 +11,43 @@
 
 RC initBufferPool(BM_BufferPool *const bm, const char *const pageFileName, 
 		const int numPages, ReplacementStrategy strategy, void *stratData){
-    // initializing bm properties
+    
+    // if bm variable no initialized then return
+    if(bm==NULL)
+        return RC_WRITE_FAILED;
+
+    // initializing filename in bm
     bm->pageFile = strdup(pageFileName);
+
+    // check if file exists
+    SM_FileHandle fh;
+    RC ret = openPageFile(bm->pageFile, &fh);
+    if(ret!=RC_OK){
+        return ret;
+    }
+
+    // initializing bm properties
     bm->numPages = numPages;
     bm->strategy = strategy;
     // initializing pagetable
     initPageTable(bm, numPages);
     // initialize replacement strategy
     initReplacementStrategy(bm);
+
+    // closing opened page file
+    closePageFile(&fh);
     return RC_OK;
 }
 
 RC shutdownBufferPool(BM_BufferPool *const bm){
 
+    RC res = forceFlushPool(bm);
+    
+    // if failed to flush then return
+    if(res!=RC_OK)
+        return res;
+
     // get pageTable contents
-    forceFlushPool(bm);
     PageTable* pageTable = getPageTable(bm);
 
     // check if all fixCounts are 0
@@ -37,17 +59,19 @@ RC shutdownBufferPool(BM_BufferPool *const bm){
     }
     // bufferpool is stored in bm.mgmtData including metadata
     free(bm->mgmtData);
+    bm->mgmtData = NULL;
+
     return RC_OK;
 }
 
 RC forceFlushPool(BM_BufferPool *const bm){
 
-    PageTable* pageTable = getPageTable(bm);
-    // initialize filehandle variables
-    SM_FileHandle fh;
+    // if pagetable not initialized, then return
+    if(bm==NULL || bm->mgmtData==NULL)
+        return RC_WRITE_FAILED;
 
     // open file from harddisk to start writing
-    openPageFile(bm->pageFile, &fh);
+    PageTable* pageTable = getPageTable(bm);
 
     // writing dirty data
     for(int i=0;i<pageTable->capacity;i++){
@@ -63,23 +87,36 @@ RC forceFlushPool(BM_BufferPool *const bm){
         }
     }
 
-    // close file after writing
-    closePageFile(&fh);
+    return RC_OK;
 }
 
 // Buffer Manager Interface Access Pages
 RC markDirty (BM_BufferPool *const bm, BM_PageHandle *const page){
-    // update the content in the pool
-    int index = putPage(bm, page);
+
+    // if pagetable not initialized or page not present
+    if(bm==NULL || bm->mgmtData==NULL || page==NULL || page->data==NULL || page->pageNum<0)
+        return RC_WRITE_FAILED;
+
+    // check if it already has the page.
+    int index = hasPage(bm, page->pageNum);
     if(index==-1){
         return RC_WRITE_FAILED;
     }
+
+    // update the content in the pool
+    index = putPage(bm, page);
+    
     // mark the page as dirty
     markPageDirty(bm, index);
     return RC_OK;
 }
 
 RC unpinPage (BM_BufferPool *const bm, BM_PageHandle *const page){
+
+    // if pagetable not initialized or page not present
+    if(bm==NULL || bm->mgmtData==NULL || page==NULL || page->data==NULL || page->pageNum<0)
+        return RC_WRITE_FAILED;
+
     // check if the given pageNum is in the pool
     int index = hasPage(bm, page->pageNum);
     if(index==-1)
@@ -90,6 +127,11 @@ RC unpinPage (BM_BufferPool *const bm, BM_PageHandle *const page){
 }
 
 RC forcePage (BM_BufferPool *const bm, BM_PageHandle *const page){
+
+    // if pagetable not initialized or page not present
+    if(bm==NULL || bm->mgmtData==NULL || page==NULL || page->data==NULL || page->pageNum<0)
+        return RC_WRITE_FAILED;
+
     PageTable* pageTable = getPageTable(bm);
     // initialize filehandle variables
     SM_FileHandle fh;
@@ -116,9 +158,16 @@ RC forcePage (BM_BufferPool *const bm, BM_PageHandle *const page){
 
 RC pinPage (BM_BufferPool *const bm, BM_PageHandle *const page, 
 		const PageNumber pageNum){
+
+    // handling negative page numbers
+    if(pageNum<0 || bm==NULL || bm->mgmtData==NULL)
+        return RC_WRITE_FAILED;
+
     page->pageNum = pageNum;
+
     int index = hasPage(bm, page->pageNum);
     PageTable *pageTable = getPageTable(bm); //get pageTable
+
     if(index==-1){
         // initialize filehandle variables
         SM_FileHandle fh;
@@ -134,9 +183,15 @@ RC pinPage (BM_BufferPool *const bm, BM_PageHandle *const page,
         // if index=-1 or pageTable is full
         if(index == -1){
 
+            //try evicting page
+            PageNumber evictedPageNum = evictPage(bm);
+
+            if(evictedPageNum==-1) // all pages are pinned
+                return RC_WRITE_FAILED;
+
             // evict page from replacement strategy
             BM_PageHandle *evictedPage = MAKE_PAGE_HANDLE();
-            evictedPage->pageNum = evictPage(bm);
+            evictedPage->pageNum = evictedPageNum;
             evictedPage->data = (char *)malloc(PAGE_SIZE);
 
             // get Data of the evicted page from page_table
@@ -165,6 +220,10 @@ RC pinPage (BM_BufferPool *const bm, BM_PageHandle *const page,
 // Statistics Interface
 PageNumber *getFrameContents (BM_BufferPool *const bm){
 
+    // if page table not initialized
+    if(bm==NULL || bm->mgmtData==NULL)
+        return NULL;
+
     PageTable *pageTable = getPageTable(bm);
     // Allocate memory for the frame contents array
     PageNumber *frameContents = (PageNumber *)malloc(bm->numPages * sizeof(PageNumber));
@@ -183,6 +242,10 @@ PageNumber *getFrameContents (BM_BufferPool *const bm){
 
 bool *getDirtyFlags (BM_BufferPool *const bm){
 
+    // if page table not initialized
+    if(bm==NULL || bm->mgmtData==NULL)
+        return NULL;
+
     PageTable *pageTable = getPageTable(bm);
     // Allocate memory for the dirty flags array
     bool *dirtyFlags = (bool *)malloc(bm->numPages * sizeof(bool));
@@ -197,6 +260,10 @@ bool *getDirtyFlags (BM_BufferPool *const bm){
 
 int *getFixCounts (BM_BufferPool *const bm){
 
+    // if page table not initialized
+    if(bm==NULL || bm->mgmtData==NULL)
+        return NULL;
+
     PageTable *pageTable = getPageTable(bm);
     // Allocate memory for the dirty flags array
     int *fixCounts = (int *)malloc(bm->numPages * sizeof(int));
@@ -208,9 +275,20 @@ int *getFixCounts (BM_BufferPool *const bm){
     
     return fixCounts;
 }
+
 int getNumReadIO (BM_BufferPool *const bm){
+
+    // if page table not initialized
+    if(bm==NULL || bm->mgmtData==NULL)
+        return -1;
+
     return getPageTable(bm)->readIOCount;
 }
 int getNumWriteIO (BM_BufferPool *const bm){
+
+    // if page table not initialized
+    if(bm==NULL || bm->mgmtData==NULL)
+        return -1;
+
     return getPageTable(bm)->writeIOCount;
 }
