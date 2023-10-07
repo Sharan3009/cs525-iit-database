@@ -5,12 +5,14 @@
 #include "linkedlist.h"
 
 LinkedList* list = NULL;
+void* stratData = NULL;
 
-void initReplacementStrategy(BM_BufferPool *const bm){
-
+void initReplacementStrategy(BM_BufferPool *const bm, void* stratData){
+    stratData = stratData;
     switch (bm->strategy){
         case RS_FIFO:
         case RS_LRU:
+        case RS_LRU_K:
             list = (LinkedList*)realloc(list, sizeof(LinkedList));
             list->head = NULL;
             list->tail = NULL;
@@ -25,12 +27,16 @@ PageNumber evictPage(BM_BufferPool *const bm){
     switch (bm->strategy){
         case RS_FIFO:
         case RS_LRU:
-            return evictFifo(bm);
+            return evictFromHead(bm);
+        case RS_LRU_K:
+            if(stratData==NULL){
+                return evictFromHead(bm);
+            }
     }
     return -1;
 }
 
-static PageNumber evictFifo(BM_BufferPool *const bm){
+static PageNumber evictFromHead(BM_BufferPool *const bm){
 
     Node* temp = list->head;
     Node* prev = NULL;
@@ -68,27 +74,19 @@ static PageNumber evictFifo(BM_BufferPool *const bm){
     return pageNum;
 }
 
-static PageNumber evictLru(BM_BufferPool *const bm){
-
-}
-
 
 // generic public function to add page according to strategy
 void admitPage(BM_BufferPool *const bm, PageEntry *entry){
     switch (bm->strategy){
         case RS_FIFO:
         case RS_LRU:
-            admitFifo(entry);
+            insertAtEnd(list, entry);
             break;
+        case RS_LRU_K:
+            if(stratData==NULL){
+                insertAtEnd(list, entry);
+            }
     }
-}
-
-static void admitFifo(PageEntry *entry){
-    insertAtEnd(list, entry);
-}
-
-static void admitLru(PageEntry *entry){
-    insertAtEnd(list, entry);
 }
 
 
@@ -100,10 +98,21 @@ void reorderPage(BM_BufferPool *const bm, PageEntry *entry){
         case RS_LRU:
             reorderLru(bm, entry);
             break;
+        case RS_LRU_K:
+            if(stratData==NULL){
+                reorderLru(bm, entry);
+            }
     }
 }
 
 static void reorderLru(BM_BufferPool *const bm, PageEntry *entry){
     deleteNode(list, entry->pageNum);
     insertAtEnd(list, entry);
+    displayList(list);
+}
+
+void clearStrategyData(BM_BufferPool *const bm){
+    free(list);
+    list = NULL;
+    stratData = NULL;
 }

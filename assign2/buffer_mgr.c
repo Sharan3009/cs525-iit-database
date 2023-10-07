@@ -32,7 +32,7 @@ RC initBufferPool(BM_BufferPool *const bm, const char *const pageFileName,
     // initializing pagetable
     initPageTable(bm, numPages);
     // initialize replacement strategy
-    initReplacementStrategy(bm);
+    initReplacementStrategy(bm, stratData);
 
     // closing opened page file
     closePageFile(&fh);
@@ -57,6 +57,9 @@ RC shutdownBufferPool(BM_BufferPool *const bm){
             return RC_WRITE_FAILED;
         }
     }
+    // clear strategy related data
+    clearStrategyData(bm);
+
     // bufferpool is stored in bm.mgmtData including metadata
     free(bm->mgmtData);
     bm->mgmtData = NULL;
@@ -164,7 +167,6 @@ RC pinPage (BM_BufferPool *const bm, BM_PageHandle *const page,
         return RC_WRITE_FAILED;
 
     page->pageNum = pageNum;
-
     int index = hasPage(bm, page->pageNum);
     PageTable *pageTable = getPageTable(bm); //get pageTable
 
@@ -206,8 +208,7 @@ RC pinPage (BM_BufferPool *const bm, BM_PageHandle *const page,
 
             // try again putting page
             index = putPage(bm, page);
-        } 
-        
+        }
         // whenever we add page in page_table, we admit page to replacement strategy
         admitPage(bm, &(pageTable->table[index]));
     } else {
