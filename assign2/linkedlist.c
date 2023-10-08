@@ -5,7 +5,7 @@
 #include "buffer_mgr.h"
 
 // Create a new node with given data
-Node* createNode(PageEntry * entry, int occurences, int priority, int time) {
+Node* createNode(PageEntry * entry, int occurences, long int priority, long long time) {
     Node* newNode = (Node*)malloc(sizeof(Node));
     newNode->entry = entry;
     newNode->next = NULL;

@@ -3,10 +3,10 @@
 
 #include "replacement_strategy.h"
 #include "linkedlist.h"
-#include <time.h>
 
 LinkedList* list = NULL;
 int k = 1; // LRU_K's k
+long long timer = 0;
 
 void initReplacementStrategy(BM_BufferPool *const bm, void* stratData){
     // setting k of LRU_K if any
@@ -91,14 +91,21 @@ void admitPage(BM_BufferPool *const bm, PageEntry *entry){
 }
 
 void admitLruK(PageEntry* entry){
-
-    Node* node = createNode(entry, 1, -1, -1);
+    long long currTime = -1;
+    if(k-1==1)
+        currTime = timer++;
+    Node* node = createNode(entry, 1, -1, currTime);
 
     Node* temp = list->head;
     Node* prev = NULL;
 
     if(temp==NULL){
-        insertAtBeginning(list, entry);
+        if (list->head == NULL) {
+            list->head = list->tail = node;
+        } else {
+            node->next = list->head;
+            list->head = node;
+        }
         return;
     }
     while (temp != NULL && temp->priority ==-1) {
@@ -139,16 +146,17 @@ static void reorderLru(BM_BufferPool *const bm, PageEntry *entry){
 static void reorderLruK(BM_BufferPool *const bm, PageEntry *entry){
     Node* node = deleteNode(list, entry->pageNum);
     node->occurences++;
+    printf("pageNum=%d and occurences=%d and time=%lld\n",node->entry->pageNum, node->occurences, node->time);
     if(node->occurences>k)
         node->occurences = k;
 
     if(node->occurences==k-1){
         // storing time for the first time, but priority still stays -1
-        node->time = time(NULL);
+        node->time = timer++;
     } else if(node->occurences==k){
-        int prevTime = node->time; // it had a previous time
+        long long prevTime = node->time; // it had a previous time
         if(prevTime!=-1){
-            node->time = time(NULL);
+            node->time = timer++;
             node->priority = node->time - prevTime;
         }
     }
@@ -175,4 +183,5 @@ void clearStrategyData(BM_BufferPool *const bm){
     free(list);
     list = NULL;
     k = 1;
+    timer = 0;
 }

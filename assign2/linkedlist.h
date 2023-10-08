@@ -5,8 +5,8 @@
 typedef struct Node {
     PageEntry *entry;
     struct Node* next;
-    time_t priority;
-    time_t time; // time of last occurence starting from k-1th
+    long int priority;
+    long long time; // time of last occurence starting from k-1th
     int occurences;
 } Node;
 
@@ -15,7 +15,7 @@ typedef struct LinkedList {
     Node* tail;
 } LinkedList;
 
-extern Node* createNode(PageEntry * entry, int occurences, int priority, int time);
+extern Node* createNode(PageEntry * entry, int occurences, long int priority, long long time);
 extern void insertAtBeginning(LinkedList* list, PageEntry * entry);
 extern void insertAtEnd(LinkedList* list, PageEntry * entry);
 extern Node* deleteNode(LinkedList* list, PageNumber pageNum);
