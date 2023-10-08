@@ -29,6 +29,7 @@ RC initBufferPool(BM_BufferPool *const bm, const char *const pageFileName,
     // initializing bm properties
     bm->numPages = numPages;
     bm->strategy = strategy;
+    bm->mgmtData = NULL;
     // initializing pagetable
     initPageTable(bm, numPages);
     // initialize replacement strategy
