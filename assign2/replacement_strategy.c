@@ -82,11 +82,11 @@ static PageNumber evictFromHead(BM_BufferPool *const bm){
 void admitPage(BM_BufferPool *const bm, PageEntry *entry){
     switch (bm->strategy){
         case RS_FIFO:
-        case RS_LRU:
             insertAtEnd(list, entry);
-            break;
+        case RS_LRU:
         case RS_LRU_K:
             admitLruK(entry);
+            break;
     }
 }
 
@@ -131,16 +131,10 @@ void reorderPage(BM_BufferPool *const bm, PageEntry *entry){
         case RS_FIFO:
             break;
         case RS_LRU:
-            reorderLru(bm, entry);
-            break;
         case RS_LRU_K:
             reorderLruK(bm, entry);
+            break;
     }
-}
-
-static void reorderLru(BM_BufferPool *const bm, PageEntry *entry){
-    free(deleteNode(list, entry->pageNum));
-    insertAtEnd(list, entry);
 }
 
 static void reorderLruK(BM_BufferPool *const bm, PageEntry *entry){
