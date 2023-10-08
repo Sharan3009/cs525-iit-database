@@ -37,7 +37,7 @@ PageNumber evictPage(BM_BufferPool *const bm){
         case RS_FIFO:
         case RS_LRU:
         case RS_LRU_K:
-            return evictFromHead(bm);
+                    return evictFromHead(bm);
     }
     return -1;
 }
@@ -83,6 +83,7 @@ void admitPage(BM_BufferPool *const bm, PageEntry *entry){
     switch (bm->strategy){
         case RS_FIFO:
             insertAtEnd(list, entry);
+            break;
         case RS_LRU:
         case RS_LRU_K:
             admitLruK(entry);
