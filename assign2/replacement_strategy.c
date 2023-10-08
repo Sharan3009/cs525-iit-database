@@ -22,6 +22,7 @@ void initReplacementStrategy(BM_BufferPool *const bm, void* stratData){
         case RS_FIFO:
         case RS_LRU:
         case RS_LRU_K:
+        case RS_LFU:
             list = (LinkedList*)realloc(list, sizeof(LinkedList));
             list->head = NULL;
             list->tail = NULL;
@@ -37,7 +38,8 @@ PageNumber evictPage(BM_BufferPool *const bm){
         case RS_FIFO:
         case RS_LRU:
         case RS_LRU_K:
-                    return evictFromHead(bm);
+        case RS_LFU:
+            return evictFromHead(bm);
     }
     return -1;
 }
@@ -88,6 +90,9 @@ void admitPage(BM_BufferPool *const bm, PageEntry *entry){
         case RS_LRU_K:
             admitLruK(entry);
             break;
+        case RS_LFU:
+            admintLfu(entry);
+            break;
     }
 }
 
@@ -95,7 +100,9 @@ void admitLruK(PageEntry* entry){
     long long currTime = -1;
     if(k-1==1)
         currTime = timer++;
-    Node* node = createNode(entry, 1, LONG_MAX, currTime);
+    Node* node = createNode(entry);
+    node->bp = LONG_MAX;
+    node->time = currTime;
 
     Node* temp = list->head;
     Node* prev = NULL;
@@ -121,8 +128,37 @@ void admitLruK(PageEntry* entry){
     }  else {  // Insert in between or at the end
         prev->next = node;
         node->next = temp;
+    }
+
 }
 
+void admintLfu(PageEntry* entry){
+    Node* node = createNode(entry);
+    Node* temp = list->head;
+    Node* prev = NULL;
+
+    if(temp==NULL){
+        if (list->head == NULL) {
+            list->head = list->tail = node;
+        } else {
+            node->next = list->head;
+            list->head = node;
+        }
+        return;
+    }
+    while (temp != NULL && temp->frequency <= node->frequency) {
+        prev = temp;
+        temp = temp->next;
+    }
+
+    // Insert at the beginning
+    if (prev == NULL) {
+        node->next = list->head;
+        list->head = node;
+    }  else {  // Insert in between or at the end
+        prev->next = node;
+        node->next = temp;
+    }
 }
 
 
@@ -134,6 +170,9 @@ void reorderPage(BM_BufferPool *const bm, PageEntry *entry){
         case RS_LRU:
         case RS_LRU_K:
             reorderLruK(bm, entry);
+            break;
+        case RS_LFU:
+            reorderLfu(bm, entry);
             break;
     }
 }
@@ -170,7 +209,29 @@ static void reorderLruK(BM_BufferPool *const bm, PageEntry *entry){
     }  else {  // Insert in between or at the end
         prev->next = node;
         node->next = temp;
+    }
 }
+
+static void reorderLfu(BM_BufferPool *const bm, PageEntry *entry){
+    Node* node = deleteNode(list, entry->pageNum);
+    node->frequency++;
+
+    Node* temp = list->head;
+    Node* prev = NULL;
+
+    while (temp != NULL && temp->frequency <= node->frequency) {
+        prev = temp;
+        temp = temp->next;
+    }
+
+    // Insert at the beginning
+    if (prev == NULL) {
+        node->next = list->head;
+        list->head = node;
+    }  else {  // Insert in between or at the end
+        prev->next = node;
+        node->next = temp;
+    }
 }
 
 void clearStrategyData(BM_BufferPool *const bm){

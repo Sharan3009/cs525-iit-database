@@ -7,7 +7,7 @@
 
 void initPageTable(BM_BufferPool *const bm, int capacity){
 
-    bm->mgmtData = (void*)malloc(sizeof(PageTable) + capacity*sizeof(PageEntry) + capacity*PAGE_SIZE;);
+    bm->mgmtData = (void*)malloc(sizeof(PageTable) + capacity*sizeof(PageEntry) + capacity*PAGE_SIZE);
 
     PageTable *pageTable = getPageTable(bm);
     pageTable->table = (PageEntry *)((char *)bm->mgmtData + sizeof(PageTable));

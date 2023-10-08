@@ -29,7 +29,6 @@ free(real);                                \
 } while(0)
 
 // test and helper methods
-static void createDummyPages(BM_BufferPool *bm, int num);
 
 static void testLRU_1 (void);
 
