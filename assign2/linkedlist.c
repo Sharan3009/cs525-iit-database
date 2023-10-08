@@ -5,16 +5,19 @@
 #include "buffer_mgr.h"
 
 // Create a new node with given data
-Node* createNode(PageEntry * entry) {
+Node* createNode(PageEntry * entry, int occurences, int priority, int time) {
     Node* newNode = (Node*)malloc(sizeof(Node));
     newNode->entry = entry;
     newNode->next = NULL;
+    newNode->priority = priority;
+    newNode->occurences = occurences;
+    newNode->time = time;
     return newNode;
 }
 
 // Insert a new node at the beginning of the linked list
 void insertAtBeginning(LinkedList* list, PageEntry * entry) {
-    Node* newNode = createNode(entry);
+    Node* newNode = createNode(entry, 1, -1, -1);
     if (list->head == NULL) {
         list->head = list->tail = newNode;
     } else {
@@ -25,7 +28,7 @@ void insertAtBeginning(LinkedList* list, PageEntry * entry) {
 
 // Insert a new node at the end of the linked list
 void insertAtEnd(LinkedList* list, PageEntry * entry) {
-    Node* newNode = createNode(entry);
+    Node* newNode = createNode(entry, 1,-1, -1);
     if (list->head == NULL) {
         list->head = list->tail = newNode;
     } else {
@@ -35,7 +38,7 @@ void insertAtEnd(LinkedList* list, PageEntry * entry) {
 }
 
 // Delete a node with given data from the linked list
-void deleteNode(LinkedList* list, PageNumber pageNum) {
+Node* deleteNode(LinkedList* list, PageNumber pageNum) {
     Node* temp = list->head;
     Node* prev = NULL;
 
@@ -46,7 +49,7 @@ void deleteNode(LinkedList* list, PageNumber pageNum) {
 
     // If the node is not found
     if (temp == NULL) {
-        return;
+        return temp;
     }
 
     // Remove the node from the list
@@ -62,8 +65,7 @@ void deleteNode(LinkedList* list, PageNumber pageNum) {
         }
     }
 
-    // Free the memory occupied by the deleted node
-    free(temp);
+    return temp;
 }
 
 // Display the elements of the linked list

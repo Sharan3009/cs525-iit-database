@@ -3,6 +3,7 @@
 
 #include "replacement_strategy.h"
 #include "linkedlist.h"
+#include <time.h>
 
 LinkedList* list = NULL;
 int k = 1; // LRU_K's k
@@ -35,11 +36,8 @@ PageNumber evictPage(BM_BufferPool *const bm){
     switch (bm->strategy){
         case RS_FIFO:
         case RS_LRU:
-            return evictFromHead(bm);
         case RS_LRU_K:
-            if(k==1){
-                return evictFromHead(bm);
-            }
+            return evictFromHead(bm);
     }
     return -1;
 }
@@ -49,13 +47,11 @@ static PageNumber evictFromHead(BM_BufferPool *const bm){
     Node* temp = list->head;
     Node* prev = NULL;
     PageTable *pageTable = getPageTable(bm);
-
     // find page whose fixCount is 0
     while (temp != NULL && temp->entry->fixCount>0) {
         prev = temp;
         temp = temp->next;
     }
-
     // If the node is not found
     if (temp == NULL) {
         return -1;
@@ -76,7 +72,6 @@ static PageNumber evictFromHead(BM_BufferPool *const bm){
 
     // store pageNum in variable
     PageNumber pageNum = temp->entry->pageNum;
-
     // Free the memory occupied by the deleted node
     free(temp);
     return pageNum;
@@ -91,10 +86,35 @@ void admitPage(BM_BufferPool *const bm, PageEntry *entry){
             insertAtEnd(list, entry);
             break;
         case RS_LRU_K:
-            if(k==1){
-                insertAtEnd(list, entry);
-            }
+            admitLruK(entry);
     }
+}
+
+void admitLruK(PageEntry* entry){
+
+    Node* node = createNode(entry, 1, -1, -1);
+
+    Node* temp = list->head;
+    Node* prev = NULL;
+
+    if(temp==NULL){
+        insertAtBeginning(list, entry);
+        return;
+    }
+    while (temp != NULL && temp->priority ==-1) {
+        prev = temp;
+        temp = temp->next;
+    }
+
+    // reached end
+    if(temp==NULL){
+        prev->next = node;
+        node->next = NULL;
+    } else { // insert in between
+        node->next = prev->next;
+        prev->next = node;
+    }
+
 }
 
 
@@ -107,16 +127,48 @@ void reorderPage(BM_BufferPool *const bm, PageEntry *entry){
             reorderLru(bm, entry);
             break;
         case RS_LRU_K:
-            if(k==1){
-                reorderLru(bm, entry);
-            }
+            reorderLruK(bm, entry);
     }
 }
 
 static void reorderLru(BM_BufferPool *const bm, PageEntry *entry){
-    deleteNode(list, entry->pageNum);
+    free(deleteNode(list, entry->pageNum));
     insertAtEnd(list, entry);
-    displayList(list);
+}
+
+static void reorderLruK(BM_BufferPool *const bm, PageEntry *entry){
+    Node* node = deleteNode(list, entry->pageNum);
+    node->occurences++;
+    if(node->occurences>k)
+        node->occurences = k;
+
+    if(node->occurences==k-1){
+        // storing time for the first time, but priority still stays -1
+        node->time = time(NULL);
+    } else if(node->occurences==k){
+        int prevTime = node->time; // it had a previous time
+        if(prevTime!=-1){
+            node->time = time(NULL);
+            node->priority = node->time - prevTime;
+        }
+    }
+
+    Node* temp = list->head;
+    Node* prev = NULL;
+
+    while (temp != NULL && temp->priority <= node->priority) {
+        prev = temp;
+        temp = temp->next;
+    }
+
+    // reached end
+    if(temp==NULL){
+        prev->next = node;
+        node->next = NULL;
+    } else { // insert in between
+        node->next = prev->next;
+        prev->next = node;
+    }
 }
 
 void clearStrategyData(BM_BufferPool *const bm){
