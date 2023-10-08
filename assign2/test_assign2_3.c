@@ -35,6 +35,8 @@ static void testLRU_1 (void);
 
 static void testLRU_2 (void);
 
+static void testLRU_2_withContention (void);
+
 // main method
 int
 main (void)
@@ -44,6 +46,7 @@ main (void)
     
     testLRU_1();
     testLRU_2();
+    testLRU_2_withContention();
     return 0;
 }
 
@@ -197,6 +200,82 @@ testLRU_2 (void)
     // check number of write IOs
     ASSERT_EQUALS_INT(0, getNumWriteIO(bm), "check number of write I/Os");
     ASSERT_EQUALS_INT(7, getNumReadIO(bm), "check number of read I/Os");
+    
+    CHECK(shutdownBufferPool(bm));
+    CHECK(destroyPageFile("testbuffer.bin"));
+    
+    free(bm);
+    free(h);
+    TEST_DONE();
+}
+
+// test the LRU_K page replacement strategy with k=2
+void
+testLRU_2_withContention (void)
+{
+    int k=2;
+    // expected results
+    const char *poolContents[] = {
+        "[0 0],[-1 0],[-1 0]" , // read 0
+        "[0 0],[1 0],[-1 0]", // read 1
+        "[0 0],[1 0],[-1 0]", // read 0
+        "[0 0],[1 0],[2 0]", // read 2
+        "[0 0],[1 0],[2 0]", // read 2
+        "[0 0],[1 0],[2 0]", // read 1
+        "[0 0],[3 0],[2 0]", // read 3 -> evict page 1 because 1 has high distance from its k-1th occurence
+        "[0 0],[4 0],[2 0]" // read 4 -> evict page 3 because page 3 never had k-1 occurences
+    };
+    
+    int i;
+    int snapshot = 0;
+    BM_BufferPool *bm = MAKE_POOL();
+    BM_PageHandle *h = MAKE_PAGE_HANDLE();
+    testName = "Testing LRU_2 page contention only";
+    
+    CHECK(createPageFile("testbuffer.bin"));
+  
+    CHECK(initBufferPool(bm, "testbuffer.bin", 3, RS_LRU_K, &k));
+    
+    // reading page 0
+    pinPage(bm, h, 0);
+    unpinPage(bm, h);
+    ASSERT_EQUALS_POOL(poolContents[snapshot++], bm, "check pool content using pages");
+
+
+    // reading page 1
+    pinPage(bm, h, 1);
+    unpinPage(bm, h);
+    ASSERT_EQUALS_POOL(poolContents[snapshot++], bm, "check pool content using pages");
+
+    // reading page 0
+    pinPage(bm, h, 0);
+    unpinPage(bm, h);
+    ASSERT_EQUALS_POOL(poolContents[snapshot++], bm, "check pool content using pages");
+
+    // reading page 2
+    pinPage(bm, h, 2);
+    unpinPage(bm, h);
+    ASSERT_EQUALS_POOL(poolContents[snapshot++], bm, "check pool content using pages");
+
+    // reading page 2
+    pinPage(bm, h, 2);
+    unpinPage(bm, h);
+    ASSERT_EQUALS_POOL(poolContents[snapshot++], bm, "check pool content using pages");
+
+    // reading page 1
+    pinPage(bm, h, 1);
+    unpinPage(bm, h);
+    ASSERT_EQUALS_POOL(poolContents[snapshot++], bm, "check pool content using pages");
+
+    // reading page 3
+    pinPage(bm, h, 3);
+    unpinPage(bm, h);
+    ASSERT_EQUALS_POOL(poolContents[snapshot++], bm, "check pool content using pages");
+
+    // reading page 4
+    pinPage(bm, h, 4);
+    unpinPage(bm, h);
+    ASSERT_EQUALS_POOL(poolContents[snapshot++], bm, "check pool content using pages");
     
     CHECK(shutdownBufferPool(bm));
     CHECK(destroyPageFile("testbuffer.bin"));

@@ -1,11 +1,12 @@
 #include <stdio.h>
 #include "buffer_mgr.h"
 #include "page_table.h"
+#include <limits.h>
 
 typedef struct Node {
     PageEntry *entry;
     struct Node* next;
-    long int priority;
+    long int bp; // backward k distance
     long long time; // time of last occurence starting from k-1th
     int occurences;
 } Node;

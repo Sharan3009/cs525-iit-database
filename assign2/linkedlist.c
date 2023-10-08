@@ -5,11 +5,11 @@
 #include "buffer_mgr.h"
 
 // Create a new node with given data
-Node* createNode(PageEntry * entry, int occurences, long int priority, long long time) {
+Node* createNode(PageEntry * entry, int occurences, long int bp, long long time) {
     Node* newNode = (Node*)malloc(sizeof(Node));
     newNode->entry = entry;
     newNode->next = NULL;
-    newNode->priority = priority;
+    newNode->bp = bp;
     newNode->occurences = occurences;
     newNode->time = time;
     return newNode;
@@ -17,7 +17,7 @@ Node* createNode(PageEntry * entry, int occurences, long int priority, long long
 
 // Insert a new node at the beginning of the linked list
 void insertAtBeginning(LinkedList* list, PageEntry * entry) {
-    Node* newNode = createNode(entry, 1, -1, -1);
+    Node* newNode = createNode(entry, 1, LONG_MAX, -1);
     if (list->head == NULL) {
         list->head = list->tail = newNode;
     } else {
@@ -28,7 +28,7 @@ void insertAtBeginning(LinkedList* list, PageEntry * entry) {
 
 // Insert a new node at the end of the linked list
 void insertAtEnd(LinkedList* list, PageEntry * entry) {
-    Node* newNode = createNode(entry, 1,-1, -1);
+    Node* newNode = createNode(entry, 1, LONG_MAX, -1);
     if (list->head == NULL) {
         list->head = list->tail = newNode;
     } else {

@@ -94,7 +94,7 @@ void admitLruK(PageEntry* entry){
     long long currTime = -1;
     if(k-1==1)
         currTime = timer++;
-    Node* node = createNode(entry, 1, -1, currTime);
+    Node* node = createNode(entry, 1, LONG_MAX, currTime);
 
     Node* temp = list->head;
     Node* prev = NULL;
@@ -108,19 +108,19 @@ void admitLruK(PageEntry* entry){
         }
         return;
     }
-    while (temp != NULL && temp->priority ==-1) {
+    while (temp != NULL && temp->bp == LONG_MAX) {
         prev = temp;
         temp = temp->next;
     }
 
-    // reached end
-    if(temp==NULL){
+    // Insert at the beginning
+    if (prev == NULL) {
+        node->next = list->head;
+        list->head = node;
+    }  else {  // Insert in between or at the end
         prev->next = node;
-        node->next = NULL;
-    } else { // insert in between
-        node->next = prev->next;
-        prev->next = node;
-    }
+        node->next = temp;
+}
 
 }
 
@@ -140,37 +140,36 @@ void reorderPage(BM_BufferPool *const bm, PageEntry *entry){
 static void reorderLruK(BM_BufferPool *const bm, PageEntry *entry){
     Node* node = deleteNode(list, entry->pageNum);
     node->occurences++;
-    printf("pageNum=%d and occurences=%d and time=%lld\n",node->entry->pageNum, node->occurences, node->time);
     if(node->occurences>k)
         node->occurences = k;
 
     if(node->occurences==k-1){
-        // storing time for the first time, but priority still stays -1
+        // storing time for the first time, but bp still stays MAXIMUM
         node->time = timer++;
     } else if(node->occurences==k){
         long long prevTime = node->time; // it had a previous time
         if(prevTime!=-1){
             node->time = timer++;
-            node->priority = node->time - prevTime;
+            node->bp = node->time - prevTime;
         }
     }
 
     Node* temp = list->head;
     Node* prev = NULL;
 
-    while (temp != NULL && temp->priority <= node->priority) {
+    while (temp != NULL && temp->bp >= node->bp) {
         prev = temp;
         temp = temp->next;
     }
 
-    // reached end
-    if(temp==NULL){
+    // Insert at the beginning
+    if (prev == NULL) {
+        node->next = list->head;
+        list->head = node;
+    }  else {  // Insert in between or at the end
         prev->next = node;
-        node->next = NULL;
-    } else { // insert in between
-        node->next = prev->next;
-        prev->next = node;
-    }
+        node->next = temp;
+}
 }
 
 void clearStrategyData(BM_BufferPool *const bm){
