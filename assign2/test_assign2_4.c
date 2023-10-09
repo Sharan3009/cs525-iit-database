@@ -32,8 +32,6 @@ free(real);                                \
 
 static void testLFU (void);
 
-static void testLFU_withContention (void);
-
 // main method
 int
 main (void)

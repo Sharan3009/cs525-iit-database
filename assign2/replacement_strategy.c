@@ -7,6 +7,7 @@
 LinkedList* list = NULL;
 int k = 1; // LRU_K's k
 long long timer = 0;
+Clock* clock = NULL;
 
 void initReplacementStrategy(BM_BufferPool *const bm, void* stratData){
     // setting k of LRU_K if any
@@ -27,7 +28,21 @@ void initReplacementStrategy(BM_BufferPool *const bm, void* stratData){
             list->head = NULL;
             list->tail = NULL;
             break;
+        case RS_CLOCK:
+            clock = (Clock *)realloc(clock, sizeof(Clock));
+            clock->hand = 0;
+            clock->size = 0;
+            clock->capacity = bm->numPages;
+            clock->arr =  (ClockEntry*)malloc(clock->capacity*sizeof(ClockEntry));
+            // Initialize clock entries to NULL
+            for (int i = 0; i < clock->capacity; i++) {
+                clock->arr[i].entry = NULL;
+                clock->arr[i].referenceBit = 0;
+            }
+            break;
         default:
+            printf("Replacement Strategy not defined=%d\n", bm->strategy);
+            exit(1);
             break;
     }
 }
@@ -40,6 +55,8 @@ PageNumber evictPage(BM_BufferPool *const bm){
         case RS_LRU_K:
         case RS_LFU:
             return evictFromHead(bm);
+        case RS_CLOCK:
+            return evictFromClock(bm);
     }
     return -1;
 }
@@ -48,7 +65,6 @@ static PageNumber evictFromHead(BM_BufferPool *const bm){
 
     Node* temp = list->head;
     Node* prev = NULL;
-    PageTable *pageTable = getPageTable(bm);
     // find page whose fixCount is 0
     while (temp != NULL && temp->entry->fixCount>0) {
         prev = temp;
@@ -79,6 +95,20 @@ static PageNumber evictFromHead(BM_BufferPool *const bm){
     return pageNum;
 }
 
+static PageNumber evictFromClock(BM_BufferPool *const bm){
+    while(true){
+        if(clock->arr[clock->hand].entry->fixCount==0 && clock->arr[clock->hand].referenceBit==0){
+            PageNumber pageNum = clock->arr[clock->hand].entry->pageNum;
+            clock->arr[clock->hand].entry = NULL;
+            clock->hand = (clock->hand + 1) % clock->capacity;
+            return pageNum;
+        }
+        clock->arr[clock->hand].referenceBit = 0;
+        clock->hand = (clock->hand + 1) % clock->capacity;
+    }
+    return -1;
+}
+
 
 // generic public function to add page according to strategy
 void admitPage(BM_BufferPool *const bm, PageEntry *entry){
@@ -91,12 +121,15 @@ void admitPage(BM_BufferPool *const bm, PageEntry *entry){
             admitLruK(entry);
             break;
         case RS_LFU:
-            admintLfu(entry);
+            admitLfu(entry);
+            break;
+        case RS_CLOCK:
+            admitClock(entry);
             break;
     }
 }
 
-void admitLruK(PageEntry* entry){
+static void admitLruK(PageEntry* entry){
     long long currTime = -1;
     if(k-1==1)
         currTime = timer++;
@@ -132,7 +165,7 @@ void admitLruK(PageEntry* entry){
 
 }
 
-void admintLfu(PageEntry* entry){
+static void admitLfu(PageEntry* entry){
     Node* node = createNode(entry);
     Node* temp = list->head;
     Node* prev = NULL;
@@ -161,6 +194,21 @@ void admintLfu(PageEntry* entry){
     }
 }
 
+static void admitClock(PageEntry* entry){
+    if(clock->size < clock->capacity){
+        for(int i=0;i<clock->capacity;i++){
+            if(clock->arr[i].entry==NULL){
+                clock->arr[i].entry = entry;
+                clock->arr[i].referenceBit = 1;
+                clock->size++;
+                return;
+            }
+        }
+    }
+    clock->arr[clock->hand].entry = entry;
+    clock->arr[clock->hand].referenceBit = 1;
+}
+
 
 // generic public function to reorder page according to strategy
 void reorderPage(BM_BufferPool *const bm, PageEntry *entry){
@@ -173,6 +221,9 @@ void reorderPage(BM_BufferPool *const bm, PageEntry *entry){
             break;
         case RS_LFU:
             reorderLfu(bm, entry);
+            break;
+        case RS_CLOCK:
+            reorderClock(bm, entry);
             break;
     }
 }
@@ -234,9 +285,20 @@ static void reorderLfu(BM_BufferPool *const bm, PageEntry *entry){
     }
 }
 
+static void reorderClock(BM_BufferPool *const bm, PageEntry *entry){
+    for(int i=0;i<clock->capacity;i++){
+        if(clock->arr[i].entry->pageNum == entry->pageNum){
+            clock->arr[i].referenceBit = 1;
+            break;
+        }
+    }
+}
+
 void clearStrategyData(BM_BufferPool *const bm){
     free(list);
     list = NULL;
     k = 1;
     timer = 0;
+    free(clock);
+    clock = NULL;
 }
