@@ -67,7 +67,7 @@ testLFU (void)
         "[0 0],[1 0],[2 0],[3 0],[5 0]", // freq of 5 is 1
         // check that pages get evicted in LFU order
         "[0 0],[1 0],[2 0],[3 0],[5 0]", // freq of 5 is 2
-        "[6 0],[1 0],[2 0],[3 0],[5 0]", // 0 will be replaced with 6 of freq 1, because 0 came first among all those 2 freq's
+        "[6 0],[1 0],[2 0],[3 0],[5 0]", // 0 will be replaced with 6 of freq 1, because 0 is LRU with freq 2.
         "[7 0],[1 0],[2 0],[3 0],[5 0]", // 6 is replaced of freq 1
         "[8 0],[1 0],[2 0],[3 0],[5 0]", // 7 is replaced of freq 1
         "[9 0],[1 0],[2 0],[3 0],[5 0]", // 8 is replaced of freq 1
@@ -140,6 +140,8 @@ testLFU_complex (void)
         "[0 0],[3 0],[2 0]", // read 0
         "[0 0],[3 0],[2 0]", // read 3
         "[0 0],[3 0],[2 0]", // read 2
+        "[0 0],[1 0],[2 0]", // read 1
+        "[0 0],[1 0],[2 0]", // read 2
     };
 
     int snapshot = 0;
@@ -198,6 +200,14 @@ testLFU_complex (void)
     pinPage(bm, h, 3);
     unpinPage(bm, h);
     ASSERT_EQUALS_POOL(poolContents[snapshot++], bm, "check pool content reading page 3");
+
+    pinPage(bm, h, 2);
+    unpinPage(bm, h);
+    ASSERT_EQUALS_POOL(poolContents[snapshot++], bm, "check pool content reading page 2");
+
+    pinPage(bm, h, 1);
+    unpinPage(bm, h);
+    ASSERT_EQUALS_POOL(poolContents[snapshot++], bm, "check pool content reading page 1");
 
     pinPage(bm, h, 2);
     unpinPage(bm, h);
