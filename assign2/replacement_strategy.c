@@ -270,7 +270,7 @@ static void reorderLfu(BM_BufferPool *const bm, PageEntry *entry){
     Node* temp = list->head;
     Node* prev = NULL;
 
-    while (temp != NULL && temp->frequency <= node->frequency) {
+    while (temp != NULL && temp->frequency < node->frequency) {
         prev = temp;
         temp = temp->next;
     }
