@@ -36,6 +36,8 @@ static void testLRU_2 (void);
 
 static void testLRU_2_withContention (void);
 
+static void testLRU_2_Error(void);
+
 // main method
 int
 main (void)
@@ -46,6 +48,7 @@ main (void)
     testLRU_1();
     testLRU_2();
     testLRU_2_withContention();
+    testLRU_2_Error();
     return 0;
 }
 
@@ -276,6 +279,51 @@ testLRU_2_withContention (void)
     unpinPage(bm, h);
     ASSERT_EQUALS_POOL(poolContents[snapshot++], bm, "check pool content using pages");
     
+    CHECK(shutdownBufferPool(bm));
+    CHECK(destroyPageFile("testbuffer.bin"));
+    
+    free(bm);
+    free(h);
+    TEST_DONE();
+}
+
+
+// test the LRU_K page replacement strategy with k=2
+void
+testLRU_2_Error (void)
+{
+    int k=2;
+    // expected results
+    const char *poolContents[] = {
+        "[0 1],[-1 0],[-1 0]" , // pin 0
+        "[0 1],[1 1],[-1 0]", // pin 1
+        "[0 1],[1 1],[2 1]", // pin 2
+    };
+    
+    int i;
+    int snapshot = 0;
+    BM_BufferPool *bm = MAKE_POOL();
+    BM_PageHandle *h = MAKE_PAGE_HANDLE();
+    testName = "Testing LRU_2 page contention only";
+    
+    CHECK(createPageFile("testbuffer.bin"));
+  
+    CHECK(initBufferPool(bm, "testbuffer.bin", 3, RS_LRU_K, &k));
+    
+    for(int i=0;i<3;i++){
+        pinPage(bm, h, i);
+        ASSERT_EQUALS_POOL(poolContents[snapshot++], bm, "check pool content using pages");
+    }
+
+    // reading page 3
+    ASSERT_ERROR(pinPage(bm, h, 3),"Page table is full");
+
+    // unpint all pages
+    for(int i=0;i<3;i++){
+        h->pageNum = i;
+        unpinPage(bm, h);
+    }
+
     CHECK(shutdownBufferPool(bm));
     CHECK(destroyPageFile("testbuffer.bin"));
     
