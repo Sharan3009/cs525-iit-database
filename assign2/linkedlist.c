@@ -9,6 +9,10 @@ Node* createNode(PageEntry * entry) {
     Node* newNode = (Node*)malloc(sizeof(Node));
     newNode->entry = entry;
     newNode->next = NULL;
+    newNode->bp = LONG_MAX;
+    newNode->occurences = 1;
+    newNode->time = -1;
+    newNode->frequency = 1;
     return newNode;
 }
 
@@ -35,7 +39,7 @@ void insertAtEnd(LinkedList* list, PageEntry * entry) {
 }
 
 // Delete a node with given data from the linked list
-void deleteNode(LinkedList* list, PageNumber pageNum) {
+Node* deleteNode(LinkedList* list, PageNumber pageNum) {
     Node* temp = list->head;
     Node* prev = NULL;
 
@@ -46,7 +50,7 @@ void deleteNode(LinkedList* list, PageNumber pageNum) {
 
     // If the node is not found
     if (temp == NULL) {
-        return;
+        return temp;
     }
 
     // Remove the node from the list
@@ -62,8 +66,7 @@ void deleteNode(LinkedList* list, PageNumber pageNum) {
         }
     }
 
-    // Free the memory occupied by the deleted node
-    free(temp);
+    return temp;
 }
 
 // Display the elements of the linked list
