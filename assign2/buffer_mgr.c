@@ -12,7 +12,7 @@
 RC initBufferPool(BM_BufferPool *const bm, const char *const pageFileName, 
 		const int numPages, ReplacementStrategy strategy, void *stratData){
     
-    // if bm variable no initialized then return
+    // if bm variable not initialized then return
     if(bm==NULL)
         return RC_WRITE_FAILED;
 
@@ -30,13 +30,16 @@ RC initBufferPool(BM_BufferPool *const bm, const char *const pageFileName,
     bm->numPages = numPages;
     bm->strategy = strategy;
     bm->mgmtData = NULL;
+
     // initializing pagetable
     initPageTable(bm, numPages);
+
     // initialize replacement strategy
     initReplacementStrategy(bm, stratData);
 
     // closing opened page file
     closePageFile(&fh);
+
     return RC_OK;
 }
 
@@ -58,6 +61,7 @@ RC shutdownBufferPool(BM_BufferPool *const bm){
             return RC_WRITE_FAILED;
         }
     }
+
     // clear strategy related data
     clearStrategyData(bm);
 
@@ -74,10 +78,9 @@ RC forceFlushPool(BM_BufferPool *const bm){
     if(bm==NULL || bm->mgmtData==NULL)
         return RC_WRITE_FAILED;
 
-    // open file from harddisk to start writing
     PageTable* pageTable = getPageTable(bm);
 
-    // writing dirty data
+    // writing dirty data using forcePage
     for(int i=0;i<pageTable->capacity;i++){
         PageEntry entry = pageTable->table[i];
         if(entry.dirty && entry.fixCount==0){
@@ -86,7 +89,10 @@ RC forceFlushPool(BM_BufferPool *const bm){
             page->data = (char *)malloc(PAGE_SIZE);
 
             strcpy(page->data, entry.pageData);
-            forcePage(bm, page);
+            if(forcePage(bm, page)!=RC_OK){
+                free(page);
+                return RC_WRITE_FAILED;
+            }
             free(page);
         }
     }
@@ -101,7 +107,7 @@ RC markDirty (BM_BufferPool *const bm, BM_PageHandle *const page){
     if(bm==NULL || bm->mgmtData==NULL || page==NULL || page->data==NULL || page->pageNum<0)
         return RC_WRITE_FAILED;
 
-    // check if it already has the page.
+    // check if page table has the page, if not then return error
     int index = hasPage(bm, page->pageNum);
     if(index==-1){
         return RC_WRITE_FAILED;
@@ -143,7 +149,8 @@ RC forcePage (BM_BufferPool *const bm, BM_PageHandle *const page){
     memset(ph, '\0', PAGE_SIZE);
 
     // open file from harddisk to start writing
-    openPageFile(bm->pageFile, &fh);
+    if(openPageFile(bm->pageFile, &fh)!=RC_OK)
+        return RC_FILE_NOT_FOUND;
 
     // writing dirty data
     int index = getPage(bm, page);
@@ -151,7 +158,11 @@ RC forcePage (BM_BufferPool *const bm, BM_PageHandle *const page){
         return RC_WRITE_FAILED;
     strcpy(ph, pageTable->table[index].pageData);
     writeBlock(pageTable->table[index].pageNum, &fh, ph);
+
+    // updating stats
     incrementWriteCount(bm);
+
+    // page is not dirty anymore
     unmarkPageDirty(bm, index);
 
     free(ph);
@@ -171,6 +182,7 @@ RC pinPage (BM_BufferPool *const bm, BM_PageHandle *const page,
     int index = hasPage(bm, page->pageNum);
     PageTable *pageTable = getPageTable(bm); //get pageTable
 
+    // MISS
     if(index==-1){
         // initialize filehandle variables
         SM_FileHandle fh;
@@ -180,9 +192,12 @@ RC pinPage (BM_BufferPool *const bm, BM_PageHandle *const page,
         openPageFile(bm->pageFile, &fh);
         ensureCapacity(pageNum+1, &fh);
         readBlock(pageNum, &fh, page->data);
+
+        // updating read stats
         incrementReadCount(bm);
         closePageFile(&fh);
         index = putPage(bm, page);
+
         // if index=-1 or pageTable is full
         if(index == -1){
 
@@ -210,11 +225,16 @@ RC pinPage (BM_BufferPool *const bm, BM_PageHandle *const page,
             // try again putting page
             index = putPage(bm, page);
         }
-        // whenever we add page in page_table, we admit page to replacement strategy
+        // whenever we add page in page_table, we admit page to replacement strategy (oppostive of evict)
         admitPage(bm, &(pageTable->table[index]));
-    } else {
-        reorderPage(bm, &(pageTable->table[index]));
     }
+    // HIT
+    else 
+    {
+        reorderPage(bm, &(pageTable->table[index])); // just reorder their priorities based on strategy
+    }
+
+    // fix count ++
     incrementPageFixCount(bm, index);
     return RC_OK;
 }
@@ -286,6 +306,7 @@ int getNumReadIO (BM_BufferPool *const bm){
 
     return getPageTable(bm)->readIOCount;
 }
+
 int getNumWriteIO (BM_BufferPool *const bm){
 
     // if page table not initialized
