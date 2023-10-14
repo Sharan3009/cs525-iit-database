@@ -163,8 +163,8 @@ testError (void)
     
     ASSERT_ERROR(pinPage(bm, h, 3), "try to pin page when pool is full of pinned pages with fix-count > 0");
     
-    CHECK(shutdownBufferPool(bm));
-    
+    //CHECK(shutdownBufferPool(bm)); 
+    ASSERT_ERROR(shutdownBufferPool(bm),"try to shut down pool with pinned page(s)"); //ADDED THIS    
     // try to pin page with negative page number.
     CHECK(initBufferPool(bm, "testbuffer.bin", 3, RS_FIFO, NULL));
     ASSERT_ERROR(pinPage(bm, h, -10), "try to pin page with negative page number");
