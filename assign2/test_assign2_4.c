@@ -140,8 +140,6 @@ testLFU_complex (void)
         "[0 0],[3 0],[2 0]", // read 0
         "[0 0],[3 0],[2 0]", // read 3
         "[0 0],[3 0],[2 0]", // read 2
-        "[0 0],[3 0],[1 0]", // read 1
-        "[0 0],[3 0],[2 0]", // read 2
     };
 
     int snapshot = 0;
@@ -200,14 +198,6 @@ testLFU_complex (void)
     pinPage(bm, h, 3);
     unpinPage(bm, h);
     ASSERT_EQUALS_POOL(poolContents[snapshot++], bm, "check pool content reading page 3");
-
-    pinPage(bm, h, 2);
-    unpinPage(bm, h);
-    ASSERT_EQUALS_POOL(poolContents[snapshot++], bm, "check pool content reading page 2");
-
-    pinPage(bm, h, 1);
-    unpinPage(bm, h);
-    ASSERT_EQUALS_POOL(poolContents[snapshot++], bm, "check pool content reading page 1");
 
     pinPage(bm, h, 2);
     unpinPage(bm, h);

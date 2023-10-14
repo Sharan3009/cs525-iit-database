@@ -62,7 +62,7 @@ PageNumber evictPage(BM_BufferPool *const bm){
 }
 
 static PageNumber evictFromHead(BM_BufferPool *const bm){
-
+    
     Node* temp = list->head;
     Node* prev = NULL;
     // find page whose fixCount is 0
@@ -264,13 +264,13 @@ static void reorderLruK(BM_BufferPool *const bm, PageEntry *entry){
 }
 
 static void reorderLfu(BM_BufferPool *const bm, PageEntry *entry){
-    Node* node = deleteNode(list, entry->pageNum);
+        Node* node = deleteNode(list, entry->pageNum);
     node->frequency++;
 
     Node* temp = list->head;
     Node* prev = NULL;
 
-    while (temp != NULL && temp->frequency < node->frequency) {
+    while (temp != NULL && temp->frequency <= node->frequency) {
         prev = temp;
         temp = temp->next;
     }
