@@ -18,7 +18,7 @@ void initReplacementStrategy(BM_BufferPool *const bm, void* stratData){
             k = *((int *)stratData);
         }
     }
-    //
+
     switch (bm->strategy){
         case RS_FIFO:
         case RS_LRU:
@@ -295,10 +295,28 @@ static void reorderClock(BM_BufferPool *const bm, PageEntry *entry){
 }
 
 void clearStrategyData(BM_BufferPool *const bm){
-    free(list);
-    list = NULL;
-    k = 1;
-    timer = 0;
-    free(clock);
-    clock = NULL;
+    switch (bm->strategy){
+        case RS_FIFO:
+        case RS_LRU:
+        case RS_LRU_K:
+        case RS_LFU:
+            // free list
+            free(list);
+            list = NULL;
+            // reset k for lru-k
+            k = 1;
+            // reset timer for lfu
+            timer = 0;
+            break;
+        case RS_CLOCK:
+            // reset clock array
+            free(clock);
+            clock = NULL;
+            break;
+        default:
+            printf("Replacement Strategy not defined=%d\n", bm->strategy);
+            exit(1);
+            break;
+    }
+
 }
