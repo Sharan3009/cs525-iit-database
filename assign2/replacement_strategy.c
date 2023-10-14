@@ -100,6 +100,7 @@ static PageNumber evictFromClock(BM_BufferPool *const bm){
         if(clock->arr[clock->hand].entry->fixCount==0 && clock->arr[clock->hand].referenceBit==0){
             PageNumber pageNum = clock->arr[clock->hand].entry->pageNum;
             clock->arr[clock->hand].entry = NULL;
+            clock->size--;
             clock->hand = (clock->hand + 1) % clock->capacity;
             return pageNum;
         }
