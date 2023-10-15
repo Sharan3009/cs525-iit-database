@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <pthread.h>
 
 #include "buffer_mgr.h"
 #include "dberror.h"
@@ -8,6 +9,9 @@
 #include "page_table.h"
 #include "storage_mgr.h"
 #include "replacement_strategy.h"
+
+pthread_mutex_t pinLock;
+pthread_mutex_t writeLock;
 
 RC initBufferPool(BM_BufferPool *const bm, const char *const pageFileName, 
 		const int numPages, ReplacementStrategy strategy, void *stratData){
@@ -40,6 +44,10 @@ RC initBufferPool(BM_BufferPool *const bm, const char *const pageFileName,
     // closing opened page file
     closePageFile(&fh);
 
+    // initialize locks
+    pthread_mutex_init(&pinLock, NULL);
+    pthread_mutex_init(&writeLock, NULL);
+
     return RC_OK;
 }
 
@@ -68,6 +76,10 @@ RC shutdownBufferPool(BM_BufferPool *const bm){
     // bufferpool is stored in bm.mgmtData including metadata
     free(bm->mgmtData);
     bm->mgmtData = NULL;
+
+    // destroy locks
+    pthread_mutex_destroy(&pinLock);
+    pthread_mutex_destroy(&writeLock);
 
     return RC_OK;
 }
@@ -107,9 +119,12 @@ RC markDirty (BM_BufferPool *const bm, BM_PageHandle *const page){
     if(bm==NULL || bm->mgmtData==NULL || page==NULL || page->data==NULL || page->pageNum<0)
         return RC_WRITE_FAILED;
 
+    // critical sectin starts to write
+    pthread_mutex_lock(&writeLock);
     // check if page table has the page, if not then return error
     int index = hasPage(bm, page->pageNum);
     if(index==-1){
+        pthread_mutex_unlock(&writeLock); // release lock if error
         return RC_WRITE_FAILED;
     }
 
@@ -118,6 +133,8 @@ RC markDirty (BM_BufferPool *const bm, BM_PageHandle *const page){
     
     // mark the page as dirty
     markPageDirty(bm, index);
+    //release lock otherwise
+    pthread_mutex_unlock(&writeLock);
     return RC_OK;
 }
 
@@ -126,7 +143,7 @@ RC unpinPage (BM_BufferPool *const bm, BM_PageHandle *const page){
     // if pagetable not initialized or page not present
     if(bm==NULL || bm->mgmtData==NULL || page==NULL || page->data==NULL || page->pageNum<0)
         return RC_WRITE_FAILED;
-
+    
     // check if the given pageNum is in the pool
     int index = hasPage(bm, page->pageNum);
     if(index==-1)
@@ -177,13 +194,24 @@ RC pinPage (BM_BufferPool *const bm, BM_PageHandle *const page,
     // handling negative page numbers
     if(pageNum<0 || bm==NULL || bm->mgmtData==NULL)
         return RC_WRITE_FAILED;
-
+    
     page->pageNum = pageNum;
     int index = hasPage(bm, page->pageNum);
     PageTable *pageTable = getPageTable(bm); //get pageTable
 
     // MISS
     if(index==-1){
+        // critical section starts
+
+        // hold lock
+        pthread_mutex_lock(&pinLock);
+
+        // if some other thread has done the page replacement
+        // then check again and try redoing pinPage
+        // because this time it might have been solved by other thread
+        if(hasPage(bm, pageNum)!=-1)
+            return pinPage(bm, page, pageNum);
+
         // initialize filehandle variables
         SM_FileHandle fh;
         page->data = (char *) malloc(PAGE_SIZE);
@@ -227,6 +255,8 @@ RC pinPage (BM_BufferPool *const bm, BM_PageHandle *const page,
         }
         // whenever we add page in page_table, we admit page to replacement strategy (oppostive of evict)
         admitPage(bm, &(pageTable->table[index]));
+        // release lock
+        pthread_mutex_unlock(&pinLock);
     }
     // HIT
     else 
