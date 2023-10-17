@@ -196,7 +196,11 @@ RC pinPage (BM_BufferPool *const bm, BM_PageHandle *const page,
         return RC_WRITE_FAILED;
     
     page->pageNum = pageNum;
-    int index = hasPage(bm, page->pageNum);
+    page->data = (char *) malloc(PAGE_SIZE);
+
+    // try reading from frame
+    int index = getPage(bm, page);
+
     PageTable *pageTable = getPageTable(bm); //get pageTable
 
     // MISS
@@ -209,12 +213,14 @@ RC pinPage (BM_BufferPool *const bm, BM_PageHandle *const page,
         // if some other thread has done the page replacement
         // then check again and try redoing pinPage
         // because this time it might have been solved by other thread
-        if(hasPage(bm, pageNum)!=-1)
+        if(hasPage(bm, pageNum)!=-1){
+            free(page->data);
+            page->data = NULL;
             return pinPage(bm, page, pageNum);
+        }
 
         // initialize filehandle variables
         SM_FileHandle fh;
-        page->data = (char *) malloc(PAGE_SIZE);
 
         // readBlock from the file on disk
         openPageFile(bm->pageFile, &fh);
