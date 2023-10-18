@@ -216,6 +216,7 @@ RC pinPage (BM_BufferPool *const bm, BM_PageHandle *const page,
         if(hasPage(bm, pageNum)!=-1){
             free(page->data);
             page->data = NULL;
+            pthread_mutex_unlock(&pinLock);
             return pinPage(bm, page, pageNum);
         }
 
