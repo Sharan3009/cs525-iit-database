@@ -118,6 +118,7 @@ void admitPage(BM_BufferPool *const bm, PageEntry *entry){
             insertAtEnd(list, entry);
             break;
         case RS_LRU:
+            k=1;
         case RS_LRU_K:
             admitLruK(entry);
             break;
@@ -217,6 +218,7 @@ void reorderPage(BM_BufferPool *const bm, PageEntry *entry){
         case RS_FIFO:
             break;
         case RS_LRU:
+            k=1;
         case RS_LRU_K:
             reorderLruK(bm, entry);
             break;
