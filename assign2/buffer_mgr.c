@@ -171,10 +171,18 @@ RC forcePage (BM_BufferPool *const bm, BM_PageHandle *const page){
 
     // writing dirty data
     int index = getPage(bm, page);
-    if(index==-1)
+    if(index==-1){
+        free(ph);
+        closePageFile(&fh);
         return RC_WRITE_FAILED;
+    }
     strcpy(ph, pageTable->table[index].pageData);
-    writeBlock(pageTable->table[index].pageNum, &fh, ph);
+
+    if(writeBlock(pageTable->table[index].pageNum, &fh, ph)!=RC_OK){
+        free(ph);
+        closePageFile(&fh);
+        return RC_WRITE_FAILED;
+    }
 
     // updating stats
     incrementWriteCount(bm);
