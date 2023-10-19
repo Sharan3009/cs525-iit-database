@@ -73,10 +73,10 @@ Sharandeep Singh
         - `size` indicates to see how many pages are filled up.
 
 - `replacement_strategy.c` - It is the main file which decides which page to **evict** and in which index to **admit** it to make the replacement strategy effective. It consists of 5 main public methods
-    - `initReplacementStrategy` - It initializes the replacement strategy and all the data structures which are needed to get going.
+    - `initReplacementStrategy` - It initializes the replacement strategy and all the data structures which are needed to get going. It uses `linkedlist` for `FIFO`, `LRU`, `LRU-k` and `LFU`. It uses an `array` for `Clock`. Also it sets `k=1` if `stratData` is `NULL`, otherwise `k` will be whatever is stored in `stratData`.
     - `evictPage` - It is a public method which internally calls various evict methods based on the input strategy. This method does not check whether the page exists or not. That condition are being handled inside the `buffer_mgr.c` and then this method is called.
-    - `admitPage` - It is the opposite of evict. We need to apprpriately insert the page pointer so that the eviction in the `evictPage` happens according to the replacement strategy. Again this method does not check whether the page exists or not. That condition are being handled inside the `buffer_mgr.c` and then this method is called.
-    - `reorderPage` happens when there is HIT in the page table. It reorders the priority of the pages based on the replacement strategy.
+    - `admitPage` - It is the opposite of evict. We need to apprpriately insert the page pointer so that the eviction in the `evictPage` happens according to the replacement strategy. Again this method does not check whether the page exists or not. That condition are being handled inside the `buffer_mgr.c` and then this method is called. For `LRU` there is no specific eviction method as `LRU` is same as `LRU-k` with `k=1`.
+    - `reorderPage` happens when there is HIT in the page table. It reorders the priority of the pages based on the replacement strategy. Please not `FIFO` does not need re ordering as it solely depends on when did it enter and when will it
     - `clearStrategyData` is called on shutting down the buffer pool.
 
 - `buffer_mgr.c`
