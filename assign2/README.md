@@ -26,6 +26,7 @@ Sharandeep Singh
 - All the current and additional test cases pass and you will see no errors in it.
 
 # Code structure
+- `buffer_mgr_utils` folder consist of auxillary files needed by `buffer_mgr.c` to pull through its working. This is for making code modular and readable. This folder consists of `page_table.c`,`linkedlist.c` and `replacement_strategy.c`.
 - `page_table.h` has the struct of `PageTable` and `PageEntry` as described below
     - `PageTable` consists of 
         - `table` that stores the `HashTable`.
