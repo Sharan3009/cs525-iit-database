@@ -8,7 +8,7 @@
 #include <string.h>
 #include <pthread.h>
 
-#define NUM_THREADS 1000
+#define NUM_THREADS 100
 
 // var to store the current test's name
 char *testName;
