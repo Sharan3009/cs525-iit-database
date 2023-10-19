@@ -6,9 +6,9 @@
 #include "buffer_mgr.h"
 #include "dberror.h"
 #include "dt.h"
-#include "page_table.h"
+#include "buffer_mgr_utils/page_table.h"
 #include "storage_mgr.h"
-#include "replacement_strategy.h"
+#include "buffer_mgr_utils/replacement_strategy.h"
 
 pthread_mutex_t pinLock;
 pthread_mutex_t writeLock;

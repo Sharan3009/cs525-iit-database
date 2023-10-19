@@ -2,7 +2,6 @@
 #include <stdlib.h>
 
 #include "replacement_strategy.h"
-#include "linkedlist.h"
 
 LinkedList* list = NULL;
 int k = 1; // LRU_K's k

@@ -1,6 +1,7 @@
-#include "dt.h"
-#include "buffer_mgr.h"
+#include "../dt.h"
+#include "../buffer_mgr.h"
 #include "page_table.h"
+#include "linkedlist.h"
 
 typedef struct ClockEntry {
     PageEntry* entry;

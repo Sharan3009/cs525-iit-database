@@ -3,7 +3,6 @@
 #include <string.h>
 
 #include "page_table.h"
-#include "dt.h"
 
 void initPageTable(BM_BufferPool *const bm, int capacity){
 

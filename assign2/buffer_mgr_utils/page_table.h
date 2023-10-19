@@ -1,5 +1,5 @@
-#include "dt.h"
-#include "buffer_mgr.h"
+#include "../dt.h"
+#include "../buffer_mgr.h"
 
 #ifndef PAGE_TABLE_H
 #define PAGE_TABLE_H

@@ -1,5 +1,8 @@
+# List of buffer manager utility files
+BUFFER_MGR_UTILS = buffer_mgr_utils/page_table.c buffer_mgr_utils/linkedlist.c buffer_mgr_utils/replacement_strategy.c
+
 # List of common source files
-COMMON_FILES = storage_mgr.c dberror.c buffer_mgr_stat.c buffer_mgr.c page_table.c linkedlist.c replacement_strategy.c
+COMMON_FILES = storage_mgr.c dberror.c buffer_mgr_stat.c buffer_mgr.c $(BUFFER_MGR_UTILS)
 
 DEFAULT_TESTS = test_assign2_1 test_assign2_2
 ALL_TESTS = $(DEFAULT_TESTS) test_assign2_3 test_assign2_4 test_assign2_5 test_assign2_6

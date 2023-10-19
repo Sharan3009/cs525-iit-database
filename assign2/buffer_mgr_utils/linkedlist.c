@@ -2,7 +2,6 @@
 #include <stdlib.h>
 
 #include "linkedlist.h"
-#include "buffer_mgr.h"
 
 // Create a new node with given data
 Node* createNode(PageEntry * entry) {

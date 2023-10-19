@@ -1,5 +1,5 @@
 #include <stdio.h>
-#include "buffer_mgr.h"
+#include "../buffer_mgr.h"
 #include "page_table.h"
 #include <limits.h>
 
