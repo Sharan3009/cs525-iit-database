@@ -80,3 +80,13 @@ Sharandeep Singh
     - `clearStrategyData` is called on shutting down the buffer pool.
 
 - `buffer_mgr.c`
+    - `initBufferPool` - This checks if the page exists and initializes page table from `page_table.c` and replacement strategy in `replacement_strategy.c`. Also it initializes mutex locks for `pinPage` and `markDirty` methods.
+    - `shutDownBufferPool` - It first writes down all the dirty pages using `forceFlushPool` method. If `forceFlushPool` fails or if it has any pages with `fixCount>0` then it returns errors. If succeeds then it clears replacement strategy `clearStrategyData` and clears up all the page table stored in the `bm`. Additionally, it destroys the mutex locks initialized for `pinPage` and `markDirty`.
+    - `forceFlushPool` - It loops over the page table entries, and which every has `dirty=true`, it writes down using `forcePage` method.
+    - `markDirty` - It is a thread safe method. This allows only one thread at a time to write content in the buffer pool and marking it as a dirty. It returns error if it is trying to marking dirty the page which does not exist in the page table.
+    - `unpinPage` - It reduces the fix count value by 1. It returns error if it is trying to unpin the page which does not exist in the page table.
+    - `forcePage` - This is the core method which writes down data in the page file. We are only updated the write IO stats in this method. Any other method trying to write down content on the disk should use this method only. Also it marks the page `dirty=false` on successful disk writing.
+    - `pinPage` - This page handles all the MISS and HIT and reading from the disk in case of MISS. This method is thread safe if there is a MISS because we dont want to unecessarily read the page from the disk in case of multiple threads. In other case (not MISS), the method does not restrict the threads as reading is idempotent in nature. It uses the replacement strategies and make use of `evictPage`, `admitPage` and `reorderPage`, whereever necesary. Please note all these 3 methods are internally deciding what to do based on the input replacement strategy. So page replacement is an independent module with no impact on buffer_mgr file. In the end it increments the `fixCount` by 1.
+    - `getFrameContent` reads the `pageNum` in the page table. **Please note that the frame content can be in any order as page table is based on hashing algorithm (modulus)**
+    - `getDirtyFlags` loops over the page table and return which pages are dirty.
+    - `getNumReadIO` and `getNumWriteIO` use the properties of `PageTable` struct and reads from `readIOCount` and `writeIOCount`
