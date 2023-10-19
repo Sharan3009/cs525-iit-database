@@ -8,7 +8,7 @@
 #include <string.h>
 #include <pthread.h>
 
-#define NUM_THREADS 100
+#define NUM_THREADS 1000
 
 // var to store the current test's name
 char *testName;
@@ -78,7 +78,7 @@ static void *markDirtyThread(void *data)
     BM_BufferPool *bm = (BM_BufferPool *)data;
     BM_PageHandle *page = MAKE_PAGE_HANDLE();
     CHECK(pinPage(bm, page, 0));
-    sprintf(page->data, "Content-%i", val);
+    sprintf(page->data, "Content-%i", ++val);
     CHECK(markDirty(bm, page));
     CHECK(unpinPage(bm, page));
     free(page);
@@ -99,7 +99,6 @@ testMultithreadedLatestWrite (void)
 
     // multiple threads writing to same page
     for (int i = 0; i < NUM_THREADS; i++) {
-        val++;
         pthread_create(&threadIds[i], NULL, markDirtyThread, (void *)bm);
     }
 
