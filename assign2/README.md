@@ -1,6 +1,7 @@
 # GROUP 62
 Sharandeep Singh
 
+**This submission also includes the Optional Extensions for extra credits**
 
 # Ideation
 - Buffer Pool has 3 main components
