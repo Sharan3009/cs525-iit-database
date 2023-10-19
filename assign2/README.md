@@ -1,10 +1,8 @@
 # GROUP 62
-=========================
 Sharandeep Singh
 
 
 # Ideation
-=========================
 - Buffer Pool has 3 main components
     - `buffer_mgr.c` - The actual buffer manager
     - `page_table.c` - To speed up the page lookups in the buffer pool.
@@ -18,7 +16,6 @@ Sharandeep Singh
     - `test_assign2_6.c` to test `thread safe`
 
 # How to execute
-=========================
 - Navigate to the folder `assign2` and open the terminal here.
 - Run `make clean` to clear test files file if any.    
 - To execute test cases you can do any of the following ways
@@ -29,8 +26,6 @@ Sharandeep Singh
 - All the current and additional test cases pass and you will see no errors in it.
 
 # Code structure
-=========================
-
 - `page_table.h` has the struct of `PageTable` and `PageEntry` as described below
     - `PageTable` consists of 
         - `table` that stores the `HashTable`.
