@@ -59,9 +59,9 @@ testClock (void)
         "[0 0],[1 0],[2 0]",
         // pin page 1
         "[0 0],[1 1],[2 0]",
-        // add page 3
+        // pin page 3
         "[3 0],[1 1],[2 0]",
-        // add page 5
+        // pin page 5
         "[3 0],[1 1],[5 0]"
     };
     

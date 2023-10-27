@@ -304,7 +304,7 @@ testLRU_2_Error (void)
     int snapshot = 0;
     BM_BufferPool *bm = MAKE_POOL();
     BM_PageHandle *h = MAKE_PAGE_HANDLE();
-    testName = "Testing LRU_2 page contention only";
+    testName = "Testing LRU_2 Error";
     
     CHECK(createPageFile("testbuffer.bin"));
   
@@ -318,7 +318,7 @@ testLRU_2_Error (void)
     // reading page 3
     ASSERT_ERROR(pinPage(bm, h, 3),"Page table is full");
 
-    // unpint all pages
+    // unpin all pages
     for(int i=0;i<3;i++){
         h->pageNum = i;
         unpinPage(bm, h);

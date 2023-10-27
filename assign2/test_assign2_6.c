@@ -31,7 +31,7 @@ main (void)
     return 0;
 }
 
-
+// auxilary method used by read thread
 static void *pinPageThread(void *data) 
 { 
     BM_BufferPool *bm = (BM_BufferPool *)data;
@@ -71,8 +71,8 @@ testMultithreadedReadIO (void)
     TEST_DONE();
 }
 
+// auxillary variable and method used by write thread
 int val = 0;
-
 static void *markDirtyThread(void *data) 
 { 
     BM_BufferPool *bm = (BM_BufferPool *)data;

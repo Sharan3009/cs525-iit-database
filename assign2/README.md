@@ -9,6 +9,7 @@ Sharandeep Singh
     - `page_table.c` - To speed up the page lookups in the buffer pool.
     - `replacement_strategy.c` - This handles how each page should be evicted or admitted in the buffer pool based on the input strategy.
 - `FIFO`, `LRU`, `LRU-k` and `LFU` are implemented using linkedlist. Whereas `Clock` is implemented using a cyclic `array`.
+- `LRU-k`, `LFU` and `Clock` fallbacks to `LRU` in case of tie.
 - There is no separate method for `LRU`. `LRU` is executing with the help of `LRU-k` where k=1.
 - Extra test cases are written and to test the robustness. Also, valgrind complains no memory leaks.
     - `test_assign2_3.c` to test `LRU-k`

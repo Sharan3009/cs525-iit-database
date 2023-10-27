@@ -111,6 +111,7 @@ testLFU (void)
     
     // check number of write IOs
     ASSERT_EQUALS_INT(0, getNumWriteIO(bm), "check number of write I/Os");
+    // check number of read IOs
     ASSERT_EQUALS_INT(10, getNumReadIO(bm), "check number of read I/Os");
     
     CHECK(shutdownBufferPool(bm));
