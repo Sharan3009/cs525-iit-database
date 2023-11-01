@@ -73,13 +73,13 @@ testMultithreadedReadIO (void)
 
 // auxillary variable and method used by write thread
 int val = 0;
-static void *markDirtyThread(void *data) 
+static void *forceWrite(void *data) 
 { 
     BM_BufferPool *bm = (BM_BufferPool *)data;
     BM_PageHandle *page = MAKE_PAGE_HANDLE();
     CHECK(pinPage(bm, page, 0));
     sprintf(page->data, "Content-%i", ++val);
-    CHECK(markDirty(bm, page));
+    CHECK(forcePage(bm, page));
     CHECK(unpinPage(bm, page));
     free(page);
 } 
@@ -99,7 +99,7 @@ testMultithreadedLatestWrite (void)
 
     // multiple threads writing to same page
     for (int i = 0; i < NUM_THREADS; i++) {
-        pthread_create(&threadIds[i], NULL, markDirtyThread, (void *)bm);
+        pthread_create(&threadIds[i], NULL, forceWrite, (void *)bm);
     }
 
     for(int i=0; i<NUM_THREADS; i++){
@@ -107,6 +107,9 @@ testMultithreadedLatestWrite (void)
     }
 
     ASSERT_EQUALS_INT(1,getNumReadIO(bm),"check number of read count");
+    CHECK(shutdownBufferPool(bm));
+
+    CHECK(initBufferPool(bm, "testbuffer.bin", 3, RS_FIFO, NULL));
 
     // everything the last thread write will be updated
     CHECK(pinPage(bm, h, 0));
