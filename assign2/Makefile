@@ -26,7 +26,7 @@ test_assign2_5: test_assign2_5.c $(COMMON_FILES)
 	gcc -o test_assign2_5 test_assign2_5.c $(COMMON_FILES)
 
 test_assign2_6: test_assign2_6.c $(COMMON_FILES)
-	gcc -o test_assign2_6 test_assign2_6.c $(COMMON_FILES)
+	gcc -pthread -o test_assign2_6 test_assign2_6.c $(COMMON_FILES)
 
 test: $(DEFAULT_TESTS)
 	./test_assign2_1
