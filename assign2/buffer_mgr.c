@@ -79,6 +79,7 @@ RC shutdownBufferPool(BM_BufferPool *const bm){
     // clear bookkeeping
     clearPageTableAndStatistics(bm);
     free(bm->mgmtData);
+    free(bm->pageFile);
 
     // destroy locks
     pthread_mutex_destroy(&pinLock);
@@ -132,9 +133,6 @@ RC markDirty (BM_BufferPool *const bm, BM_PageHandle *const page){
         pthread_mutex_unlock(&writeLock); // release lock if error
         return RC_WRITE_FAILED;
     }
-
-    // update the content in the pool
-    index = putPage(bm, page);
     
     // mark the page as dirty
     markPageDirty(bm, index);
@@ -164,7 +162,7 @@ RC forcePage (BM_BufferPool *const bm, BM_PageHandle *const page){
     // if pagetable not initialized or page not present
     if(bm==NULL || bm->mgmtData==NULL || page==NULL || page->data==NULL || page->pageNum<0)
         return RC_WRITE_FAILED;
-    PageTable* pageTable = getPageTable(bm);
+
     // initialize filehandle variables
     SM_FileHandle fh;
     SM_PageHandle ph = (SM_PageHandle) malloc(PAGE_SIZE);
@@ -175,15 +173,15 @@ RC forcePage (BM_BufferPool *const bm, BM_PageHandle *const page){
         return RC_FILE_NOT_FOUND;
 
     // writing dirty data
-    int index = getPage(bm, page);
+    int index = hasPage(bm, page->pageNum);
     if(index==-1){
         free(ph);
         closePageFile(&fh);
         return RC_WRITE_FAILED;
     }
-    strcpy(ph, pageTable->table[index].pageData);
+    strcpy(ph, page->data);
 
-    if(writeBlock(pageTable->table[index].pageNum, &fh, ph)!=RC_OK){
+    if(writeBlock(page->pageNum, &fh, ph)!=RC_OK){
         free(ph);
         closePageFile(&fh);
         return RC_WRITE_FAILED;
@@ -207,24 +205,19 @@ RC pinPage (BM_BufferPool *const bm, BM_PageHandle *const page,
     // handling negative page numbers
     if(pageNum<0 || bm==NULL || bm->mgmtData==NULL)
         return RC_WRITE_FAILED;
-
+    
     memset(page, '\0', sizeof(BM_PageHandle));
-    if(page->data==NULL)
-        page->data = (char*)malloc(PAGE_SIZE);
-    else
-        page->data = (char*)realloc(page->data, PAGE_SIZE);
-    memset(page->data, '\0', PAGE_SIZE);
     page->pageNum = pageNum;
-
+    
     // try reading from frame
     int index = getPage(bm, page);
-
+    
     PageTable *pageTable = getPageTable(bm); //get pageTable
 
     // MISS
     if(index==-1){
         // critical section starts
-
+    
         // hold lock
         pthread_mutex_lock(&pinLock);
 
@@ -232,39 +225,41 @@ RC pinPage (BM_BufferPool *const bm, BM_PageHandle *const page,
         // then check again and try redoing pinPage
         // because this time it might have been solved by other thread
         if(hasPage(bm, pageNum)!=-1){
-            free(page->data);
-            free(page);
             page->data = NULL;
+            free(page);
             pthread_mutex_unlock(&pinLock);
             return pinPage(bm, page, pageNum);
         }
 
         // initialize filehandle variables
         SM_FileHandle fh;
-
+        BM_PageHandle* ph = MAKE_PAGE_HANDLE();
+        ph->pageNum = pageNum;
+        ph->data = (char*)malloc(PAGE_SIZE);
         // readBlock from the file on disk
         openPageFile(bm->pageFile, &fh);
         ensureCapacity(pageNum+1, &fh);
-        readBlock(pageNum, &fh, page->data);
+        readBlock(pageNum, &fh, ph->data);
 
         // updating read stats
         incrementReadCount(bm);
         closePageFile(&fh);
-        index = putPage(bm, page);
+        index = putPage(bm, ph);
 
         // if index=-1 or pageTable is full
         if(index == -1){
 
             //try evicting page
             PageNumber evictedPageNum = evictPage(bm);
-
-            if(evictedPageNum==-1) // all pages are pinned
+            if(evictedPageNum==-1){// all pages are pinned
+                free(ph->data);
+                free(ph);
                 return RC_WRITE_FAILED;
+            } 
 
             // evict page from replacement strategy
             BM_PageHandle *evictedPage = MAKE_PAGE_HANDLE();
             evictedPage->pageNum = evictedPageNum;
-            evictedPage->data = (char *)malloc(PAGE_SIZE);
 
             // get Data of the evicted page from page_table
             index = getPage(bm, evictedPage);
@@ -274,12 +269,13 @@ RC pinPage (BM_BufferPool *const bm, BM_PageHandle *const page,
 
             // delete page from the table
             deletePage(bm, evictedPage->pageNum);
-            free(evictedPage->data);
+            evictedPage->data = NULL;
             free(evictedPage);
-
             // try again putting page
-            index = putPage(bm, page);
+            index = putPage(bm, ph);
         }
+        free(ph->data);
+        free(ph);
         // whenever we add page in page_table, we admit page to replacement strategy (oppostive of evict)
         admitPage(bm, &(pageTable->table[index]));
         // release lock
@@ -290,7 +286,7 @@ RC pinPage (BM_BufferPool *const bm, BM_PageHandle *const page,
     {
         reorderPage(bm, &(pageTable->table[index])); // just reorder their priorities based on strategy
     }
-
+    index = getPage(bm, page);
     // fix count ++
     incrementPageFixCount(bm, index);
     return RC_OK;

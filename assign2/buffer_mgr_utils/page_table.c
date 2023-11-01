@@ -81,8 +81,7 @@ int getPage(BM_BufferPool *const bm, BM_PageHandle *const page){
     // Check if the page is found
     if (pageTable->table[index].pageNum == page->pageNum) {
         // Page found, populate BM_PageHandle with page data
-        strcpy(page->data, pageTable->table[index].pageData);
-
+        page->data = pageTable->table[index].pageData;
         return index; // return index in the pagetable
     }
     // Page not found, return -1
