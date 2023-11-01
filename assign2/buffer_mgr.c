@@ -125,19 +125,13 @@ RC markDirty (BM_BufferPool *const bm, BM_PageHandle *const page){
     if(bm==NULL || bm->mgmtData==NULL || page==NULL || page->data==NULL || page->pageNum<0)
         return RC_WRITE_FAILED;
 
-    // critical sectin starts to write
-    pthread_mutex_lock(&writeLock);
     // check if page table has the page, if not then return error
     int index = hasPage(bm, page->pageNum);
     if(index==-1){
-        pthread_mutex_unlock(&writeLock); // release lock if error
         return RC_WRITE_FAILED;
     }
-    
     // mark the page as dirty
     markPageDirty(bm, index);
-    //release lock otherwise
-    pthread_mutex_unlock(&writeLock);
     return RC_OK;
 }
 
@@ -163,20 +157,26 @@ RC forcePage (BM_BufferPool *const bm, BM_PageHandle *const page){
     if(bm==NULL || bm->mgmtData==NULL || page==NULL || page->data==NULL || page->pageNum<0)
         return RC_WRITE_FAILED;
 
+    // critical section starts to write
+    pthread_mutex_lock(&writeLock);
+
     // initialize filehandle variables
     SM_FileHandle fh;
     SM_PageHandle ph = (SM_PageHandle) malloc(PAGE_SIZE);
     memset(ph, '\0', PAGE_SIZE);
 
     // open file from harddisk to start writing
-    if(openPageFile(bm->pageFile, &fh)!=RC_OK)
+    if(openPageFile(bm->pageFile, &fh)!=RC_OK){
+        pthread_mutex_unlock(&writeLock);
         return RC_FILE_NOT_FOUND;
+    }
 
     // writing dirty data
     int index = hasPage(bm, page->pageNum);
     if(index==-1){
         free(ph);
         closePageFile(&fh);
+        pthread_mutex_unlock(&writeLock);
         return RC_WRITE_FAILED;
     }
     strcpy(ph, page->data);
@@ -184,6 +184,7 @@ RC forcePage (BM_BufferPool *const bm, BM_PageHandle *const page){
     if(writeBlock(page->pageNum, &fh, ph)!=RC_OK){
         free(ph);
         closePageFile(&fh);
+        pthread_mutex_unlock(&writeLock);
         return RC_WRITE_FAILED;
     }
 
@@ -196,6 +197,7 @@ RC forcePage (BM_BufferPool *const bm, BM_PageHandle *const page){
     free(ph);
     // close file after writing
     closePageFile(&fh);
+    pthread_mutex_unlock(&writeLock);
     return RC_OK;
 }
 
