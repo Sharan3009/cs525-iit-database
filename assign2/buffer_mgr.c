@@ -36,7 +36,7 @@ RC initBufferPool(BM_BufferPool *const bm, const char *const pageFileName,
     bm->mgmtData = NULL;
 
     // initializing pagetable
-    initPageTable(bm, numPages);
+    initPageTableAndStats(bm);
 
     // initialize replacement strategy
     initReplacementStrategy(bm, stratData);
@@ -47,7 +47,7 @@ RC initBufferPool(BM_BufferPool *const bm, const char *const pageFileName,
     // initialize locks
     pthread_mutex_init(&pinLock, NULL);
     pthread_mutex_init(&writeLock, NULL);
-
+    
     return RC_OK;
 }
 
@@ -292,8 +292,9 @@ PageNumber *getFrameContents (BM_BufferPool *const bm){
         return NULL;
 
     PageTable *pageTable = getPageTable(bm);
-    // Allocate memory for the frame contents array
-    PageNumber *frameContents = (PageNumber *)malloc(bm->numPages * sizeof(PageNumber));
+
+    // get frame contents memory
+    PageNumber* frameContents = getPageTableStatistics(bm)->frameContents;
 
     // Iterate through the page table and populate the frameContents array
     for (int i = 0; i < bm->numPages; i++) {
@@ -314,8 +315,9 @@ bool *getDirtyFlags (BM_BufferPool *const bm){
         return NULL;
 
     PageTable *pageTable = getPageTable(bm);
-    // Allocate memory for the dirty flags array
-    bool *dirtyFlags = (bool *)malloc(bm->numPages * sizeof(bool));
+    
+    // get dirty flags memory
+    bool* dirtyFlags = getPageTableStatistics(bm)->dirtyFlags;
 
     // Iterate through the page table and populate the dirtyFlags array
     for (int i = 0; i < bm->numPages; i++) {
@@ -332,9 +334,10 @@ int *getFixCounts (BM_BufferPool *const bm){
         return NULL;
 
     PageTable *pageTable = getPageTable(bm);
-    // Allocate memory for the dirty flags array
-    int *fixCounts = (int *)malloc(bm->numPages * sizeof(int));
-
+    
+    // get fix count memory
+    int* fixCounts = getPageTableStatistics(bm)->fixCounts;
+    
     // Iterate through the page table and populate the dirtyFlags array
     for (int i = 0; i < bm->numPages; i++) {
         fixCounts[i] = pageTable->table[i].fixCount;

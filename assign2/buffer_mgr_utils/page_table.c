@@ -4,16 +4,17 @@
 
 #include "page_table.h"
 
-void initPageTable(BM_BufferPool *const bm, int capacity){
+void initPageTableAndStats(BM_BufferPool *const bm){
 
-    bm->mgmtData = (void*)malloc(sizeof(PageTable) + capacity*sizeof(PageEntry) + capacity*PAGE_SIZE);
+    int capacity = bm->numPages;
+    bm->mgmtData = (void*)malloc(sizeof(PageTable) + sizeof(PageTableStatistics));
 
-    PageTable *pageTable = getPageTable(bm);
-    pageTable->table = (PageEntry *)((char *)bm->mgmtData + sizeof(PageTable));
+    PageTable* pageTable = (PageTable*)malloc(sizeof(PageTable));
+    pageTable->table = (PageEntry *)malloc(capacity*sizeof(PageEntry));
 
     for (int i = 0; i < capacity; ++i) {
         pageTable->table[i].pageNum = -1; // initially all pages are unoccupied
-        pageTable->table[i].pageData = (char *)bm->mgmtData + sizeof(PageTable) + sizeof(PageEntry) * capacity + i*PAGE_SIZE;
+        pageTable->table[i].pageData = (char*)malloc(PAGE_SIZE);
         pageTable->table[i].dirty = false;
         pageTable->table[i].fixCount = 0;
     }
@@ -21,7 +22,16 @@ void initPageTable(BM_BufferPool *const bm, int capacity){
     pageTable->size = 0;
     pageTable->readIOCount = 0;
     pageTable->writeIOCount = 0;
-    bm->mgmtData = (void *)pageTable;
+
+    PageTableStatistics* pageTableStats = (PageTableStatistics*)malloc(sizeof(PageTableStatistics));
+    pageTableStats->fixCounts = (int*)malloc(capacity*sizeof(int));
+    pageTableStats->dirtyFlags = (bool*)malloc(capacity*sizeof(bool));
+    pageTableStats->frameContents = (PageNumber*)malloc(capacity*sizeof(PageNumber));
+
+    memcpy(bm->mgmtData, pageTable, sizeof(PageTable));
+    memcpy(bm->mgmtData + sizeof(PageTable), pageTableStats, sizeof(PageTableStatistics));
+    free(pageTable);
+    free(pageTableStats);
 }
 
 int putPage(BM_BufferPool *const bm, BM_PageHandle *const page){
@@ -155,6 +165,10 @@ void incrementWriteCount(BM_BufferPool *const bm){
 
 PageTable* getPageTable(BM_BufferPool *const bm){
     return (PageTable *)bm->mgmtData;
+}
+
+PageTableStatistics* getPageTableStatistics(BM_BufferPool *const bm){
+    return (PageTableStatistics*)(bm->mgmtData + sizeof(PageTable));
 }
 
 static void changePageFixCount(BM_BufferPool *const bm, int pageIndex, int val){

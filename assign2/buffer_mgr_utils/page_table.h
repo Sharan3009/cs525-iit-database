@@ -17,9 +17,16 @@
         int readIOCount;
         int writeIOCount;
     } PageTable;
+
+    typedef struct PageTableStatistics{
+        int* fixCounts;
+        bool* dirtyFlags;
+        PageNumber* frameContents;
+    } PageTableStatistics;
+    
 #endif
 
-extern void initPageTable(BM_BufferPool *const bm, int capacity);
+extern void initPageTableAndStats(BM_BufferPool *const bm);
 extern int putPage(BM_BufferPool *const bm, BM_PageHandle *const page);
 extern int getPage(BM_BufferPool *const bm, BM_PageHandle *const page);
 extern int deletePage(BM_BufferPool *const bm, PageNumber pageNum);
@@ -31,6 +38,7 @@ extern void unmarkPageDirty(BM_BufferPool *const bm, int pageIndex);
 extern void incrementReadCount(BM_BufferPool *const bm);
 extern void incrementWriteCount(BM_BufferPool *const bm);
 extern PageTable* getPageTable(BM_BufferPool *const bm);
+extern PageTableStatistics* getPageTableStatistics(BM_BufferPool *const bm);
 static void changePageFixCount(BM_BufferPool *const bm, int pageIndex, int val);
 static void changePageDirty(BM_BufferPool *const bm, int pageIndex, bool boolean);
 static bool isTableFull(BM_BufferPool *const bm);
