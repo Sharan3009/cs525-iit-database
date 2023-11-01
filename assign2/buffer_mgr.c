@@ -227,8 +227,6 @@ RC pinPage (BM_BufferPool *const bm, BM_PageHandle *const page,
         // then check again and try redoing pinPage
         // because this time it might have been solved by other thread
         if(hasPage(bm, pageNum)!=-1){
-            page->data = NULL;
-            free(page);
             pthread_mutex_unlock(&pinLock);
             return pinPage(bm, page, pageNum);
         }
