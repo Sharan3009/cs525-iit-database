@@ -27,6 +27,8 @@ RC initBufferPool(BM_BufferPool *const bm, const char *const pageFileName,
     SM_FileHandle fh;
     RC ret = openPageFile(bm->pageFile, &fh);
     if(ret!=RC_OK){
+        free(bm->pageFile);
+        bm->mgmtData = NULL;
         return ret;
     }
 
@@ -53,11 +55,11 @@ RC initBufferPool(BM_BufferPool *const bm, const char *const pageFileName,
 
 RC shutdownBufferPool(BM_BufferPool *const bm){
 
+    // if pagetable not initialized, then return
+    if(bm==NULL || bm->mgmtData==NULL)
+        return RC_WRITE_FAILED;
+
     RC res = forceFlushPool(bm);
-    
-    // if failed to flush then return
-    if(res!=RC_OK)
-        return res;
 
     // get pageTable contents
     PageTable* pageTable = getPageTable(bm);
@@ -66,22 +68,23 @@ RC shutdownBufferPool(BM_BufferPool *const bm){
     for(int i=0;i<pageTable->capacity;i++){
         PageEntry entry = pageTable->table[i];
         if(entry.fixCount!=0){
-            return RC_WRITE_FAILED;
+            res = RC_WRITE_FAILED;
+            break;
         }
     }
 
     // clear strategy related data
     clearStrategyData(bm);
 
-    // bufferpool is stored in bm.mgmtData including metadata
+    // clear bookkeeping
+    clearPageTableAndStatistics(bm);
     free(bm->mgmtData);
-    bm->mgmtData = NULL;
 
     // destroy locks
     pthread_mutex_destroy(&pinLock);
     pthread_mutex_destroy(&writeLock);
 
-    return RC_OK;
+    return res;
 }
 
 RC forceFlushPool(BM_BufferPool *const bm){
@@ -102,9 +105,11 @@ RC forceFlushPool(BM_BufferPool *const bm){
 
             strcpy(page->data, entry.pageData);
             if(forcePage(bm, page)!=RC_OK){
+                free(page->data);
                 free(page);
                 return RC_WRITE_FAILED;
             }
+            free(page->data);
             free(page);
         }
     }
@@ -141,11 +146,12 @@ RC markDirty (BM_BufferPool *const bm, BM_PageHandle *const page){
 RC unpinPage (BM_BufferPool *const bm, BM_PageHandle *const page){
 
     // if pagetable not initialized or page not present
-    if(bm==NULL || bm->mgmtData==NULL || page==NULL || page->data==NULL || page->pageNum<0)
+    if(bm==NULL || bm->mgmtData==NULL || page==NULL || page->pageNum<0)
         return RC_WRITE_FAILED;
     
     // check if the given pageNum is in the pool
     int index = hasPage(bm, page->pageNum);
+    RC res = RC_OK;
     if(index==-1)
         return RC_WRITE_FAILED;
     // if yes then decrement the fix count
@@ -158,7 +164,6 @@ RC forcePage (BM_BufferPool *const bm, BM_PageHandle *const page){
     // if pagetable not initialized or page not present
     if(bm==NULL || bm->mgmtData==NULL || page==NULL || page->data==NULL || page->pageNum<0)
         return RC_WRITE_FAILED;
-
     PageTable* pageTable = getPageTable(bm);
     // initialize filehandle variables
     SM_FileHandle fh;
@@ -202,9 +207,14 @@ RC pinPage (BM_BufferPool *const bm, BM_PageHandle *const page,
     // handling negative page numbers
     if(pageNum<0 || bm==NULL || bm->mgmtData==NULL)
         return RC_WRITE_FAILED;
-    
+
+    memset(page, '\0', sizeof(BM_PageHandle));
+    if(page->data==NULL)
+        page->data = (char*)malloc(PAGE_SIZE);
+    else
+        page->data = (char*)realloc(page->data, PAGE_SIZE);
+    memset(page->data, '\0', PAGE_SIZE);
     page->pageNum = pageNum;
-    page->data = (char *) malloc(PAGE_SIZE);
 
     // try reading from frame
     int index = getPage(bm, page);
@@ -223,6 +233,7 @@ RC pinPage (BM_BufferPool *const bm, BM_PageHandle *const page,
         // because this time it might have been solved by other thread
         if(hasPage(bm, pageNum)!=-1){
             free(page->data);
+            free(page);
             page->data = NULL;
             pthread_mutex_unlock(&pinLock);
             return pinPage(bm, page, pageNum);
@@ -263,6 +274,7 @@ RC pinPage (BM_BufferPool *const bm, BM_PageHandle *const page,
 
             // delete page from the table
             deletePage(bm, evictedPage->pageNum);
+            free(evictedPage->data);
             free(evictedPage);
 
             // try again putting page

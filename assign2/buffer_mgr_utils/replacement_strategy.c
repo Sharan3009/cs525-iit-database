@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 #include "replacement_strategy.h"
 
@@ -23,12 +24,20 @@ void initReplacementStrategy(BM_BufferPool *const bm, void* stratData){
         case RS_LRU:
         case RS_LRU_K:
         case RS_LFU:
-            list = (LinkedList*)realloc(list, sizeof(LinkedList));
+            if(list==NULL)
+                list = (LinkedList*)malloc(sizeof(LinkedList));
+            else
+                list = (LinkedList*)realloc(list, sizeof(LinkedList));
+            memset(list, '\0', sizeof(LinkedList));
             list->head = NULL;
             list->tail = NULL;
             break;
         case RS_CLOCK:
-            clock = (Clock *)realloc(clock, sizeof(Clock));
+            if(clock==NULL)
+                clock = (Clock*)malloc(sizeof(Clock));
+            else
+                clock = (Clock*)realloc(list, sizeof(Clock));
+            memset(clock, '\0', sizeof(Clock));
             clock->hand = 0;
             clock->size = 0;
             clock->capacity = bm->numPages;
@@ -303,8 +312,7 @@ void clearStrategyData(BM_BufferPool *const bm){
         case RS_LRU_K:
         case RS_LFU:
             // free list
-            free(list);
-            list = NULL;
+            freeLinkedList();
             // reset k for lru-k
             k = 1;
             // reset timer for lfu
@@ -312,8 +320,7 @@ void clearStrategyData(BM_BufferPool *const bm){
             break;
         case RS_CLOCK:
             // reset clock array
-            free(clock);
-            clock = NULL;
+            freeClock();
             break;
         default:
             printf("Replacement Strategy not defined=%d\n", bm->strategy);
@@ -321,4 +328,22 @@ void clearStrategyData(BM_BufferPool *const bm){
             break;
     }
 
+}
+
+static void freeClock() {
+    free(clock->arr);
+    free(clock);
+    clock = NULL;
+}
+
+static void freeLinkedList() {
+    Node* current = list->head;
+    Node* next;
+    while (current != NULL) {
+        next = current->next;
+        free(current);
+        current = next;
+    }
+    free(list);
+    list = NULL;
 }

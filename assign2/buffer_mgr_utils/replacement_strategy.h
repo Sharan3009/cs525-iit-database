@@ -28,3 +28,5 @@ static void reorderLruK(BM_BufferPool *const bm, PageEntry* entry);
 static void reorderLfu(BM_BufferPool *const bm, PageEntry* entry);
 static void reorderClock(BM_BufferPool *const bm, PageEntry* entry);
 extern void clearStrategyData(BM_BufferPool *const bm);
+static void freeClock();
+static void freeLinkedList();

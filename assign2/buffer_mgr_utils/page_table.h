@@ -39,6 +39,7 @@ extern void incrementReadCount(BM_BufferPool *const bm);
 extern void incrementWriteCount(BM_BufferPool *const bm);
 extern PageTable* getPageTable(BM_BufferPool *const bm);
 extern PageTableStatistics* getPageTableStatistics(BM_BufferPool *const bm);
+extern void clearPageTableAndStatistics(BM_BufferPool *const bm);
 static void changePageFixCount(BM_BufferPool *const bm, int pageIndex, int val);
 static void changePageDirty(BM_BufferPool *const bm, int pageIndex, bool boolean);
 static bool isTableFull(BM_BufferPool *const bm);

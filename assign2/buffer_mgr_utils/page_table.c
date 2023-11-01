@@ -28,6 +28,12 @@ void initPageTableAndStats(BM_BufferPool *const bm){
     pageTableStats->dirtyFlags = (bool*)malloc(capacity*sizeof(bool));
     pageTableStats->frameContents = (PageNumber*)malloc(capacity*sizeof(PageNumber));
 
+    for (int i=0;i<capacity;i++){
+        pageTableStats->fixCounts[i] = 0;
+        pageTableStats->dirtyFlags[i] = false;
+        pageTableStats->frameContents[i] = NO_PAGE;
+    }
+
     memcpy(bm->mgmtData, pageTable, sizeof(PageTable));
     memcpy(bm->mgmtData + sizeof(PageTable), pageTableStats, sizeof(PageTableStatistics));
     free(pageTable);
@@ -169,6 +175,18 @@ PageTable* getPageTable(BM_BufferPool *const bm){
 
 PageTableStatistics* getPageTableStatistics(BM_BufferPool *const bm){
     return (PageTableStatistics*)(bm->mgmtData + sizeof(PageTable));
+}
+
+void clearPageTableAndStatistics(BM_BufferPool *const bm){
+    PageTable* pageTable = getPageTable(bm);
+    PageTableStatistics* pageTableStats = getPageTableStatistics(bm);
+    for (int i=0;i<bm->numPages;i++){
+        free(pageTable->table[i].pageData);
+    }
+    free(pageTable->table);
+    free(pageTableStats->fixCounts);
+    free(pageTableStats->dirtyFlags);
+    free(pageTableStats->frameContents);
 }
 
 static void changePageFixCount(BM_BufferPool *const bm, int pageIndex, int val){
