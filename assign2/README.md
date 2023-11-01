@@ -41,9 +41,13 @@ Sharandeep Singh
         - `pageData` which is a pointer to the data location in buffer pool.
         - `fixCount` is the number of threads currently accessing the page.
         - `dirty` indicates if the page has data to be written on the disk or not.
+    - `PageTableStatistics` is a datastructure to store statistics
+        - `fixCounts` stores fix count values of the pages
+        - `dirtyFlags` stores the dirty flags of the pages
+        - `frameContents` stores the frame page numbers
 
 - `page_table.c` - It is just a immitation of `HashMap` in java but specific to the page table. It has the below methods and their working
-    - `initPageTableAndStats` - initializes page table and its statistics in `mgmtData` of `bm`
+    - `initPageTableAndStats` - initializes page table and its statistics in `mgmtData` of `bm`.
     - `getPage` - retrieves the page if exists otherwise it updates the `pageNum` to `-1` in the input page.
     - `hasPage` - It checks whether the page table has a given `PageNumber`. If not then it returns `-1`
     - `putPage` - It adds the new page if not exists. if already exists then it updates the given page. If page table is full then it returns `-1`
