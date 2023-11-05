@@ -1,44 +1,30 @@
-# List of buffer manager utility files
+STORAGE_MGR = storage_mgr.c dberror.c
 BUFFER_MGR_UTILS = buffer_mgr_utils/page_table.c buffer_mgr_utils/linkedlist.c buffer_mgr_utils/replacement_strategy.c
+BUFFER_MGR = buffer_mgr_stat.c buffer_mgr.c $(BUFFER_MGR_UTILS)
+RECORD_MGR = rm_serializer.c expr.c record_mgr.c
 
 # List of common source files
-COMMON_FILES = storage_mgr.c dberror.c buffer_mgr_stat.c buffer_mgr.c $(BUFFER_MGR_UTILS)
+COMMON_FILES = $(STORAGE_MGR) $(BUFFER_MGR) $(RECORD_MGR)
 
-DEFAULT_TESTS = test_assign2_1 test_assign2_2
-ALL_TESTS = $(DEFAULT_TESTS) test_assign2_3 test_assign2_4 test_assign2_5 test_assign2_6
+DEFAULT_TESTS = test_assign3_1 test_expr
+ALL_TESTS = $(DEFAULT_TESTS)
 
 .PHONY: all
 all: $(ALL_TESTS)
 
-test_assign2_1: test_assign2_1.c $(COMMON_FILES)
-	gcc -o test_assign2_1 test_assign2_1.c $(COMMON_FILES)
+test_assign3_1: test_assign3_1.c $(COMMON_FILES)
+	gcc -o test_assign3_1 test_assign3_1.c $(COMMON_FILES)
 
-test_assign2_2: test_assign2_2.c $(COMMON_FILES)
-	gcc -o test_assign2_2 test_assign2_2.c $(COMMON_FILES)
-
-test_assign2_3: test_assign2_3.c $(COMMON_FILES)
-	gcc -o test_assign2_3 test_assign2_3.c $(COMMON_FILES)
-
-test_assign2_4: test_assign2_4.c $(COMMON_FILES)
-	gcc -o test_assign2_4 test_assign2_4.c $(COMMON_FILES)
-
-test_assign2_5: test_assign2_5.c $(COMMON_FILES)
-	gcc -o test_assign2_5 test_assign2_5.c $(COMMON_FILES)
-
-test_assign2_6: test_assign2_6.c $(COMMON_FILES)
-	gcc -pthread -o test_assign2_6 test_assign2_6.c $(COMMON_FILES)
+test_expr: test_expr.c $(COMMON_FILES)
+	gcc -o test_expr test_expr.c $(COMMON_FILES)
 
 test: $(DEFAULT_TESTS)
-	./test_assign2_1
-	./test_assign2_2
+	./test_assign3_1
+	./test_expr
 	
 test-all: $(ALL_TESTS)
-	./test_assign2_1
-	./test_assign2_2
-	./test_assign2_3
-	./test_assign2_4
-	./test_assign2_5
-	./test_assign2_6
+	./test_assign3_1
+	./test_expr
 
 .PHONY: clean
 clean: 
