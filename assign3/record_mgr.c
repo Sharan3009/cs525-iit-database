@@ -82,7 +82,7 @@ int getRecordSize (Schema *schema){
                 recordSize += sizeof(int);
                 break;
             case DT_STRING:
-                recordSize += schema->typeLength[i];
+                recordSize += (schema->typeLength[i] + 1); // +1 for the null termination
                 break;
             case DT_FLOAT:
                 recordSize += sizeof(float);
@@ -152,14 +152,18 @@ RC freeSchema (Schema *schema){
 // dealing with records and attribute values
 RC createRecord (Record **record, Schema *schema){
 
-    if(record == NULL || schema == NULL){
+    if(schema == NULL){
         return !RC_OK;
     }
-
+    
+    // checking if record size is negative
     int recordSize = getRecordSize(schema);
     if(recordSize<0){
         return !RC_OK;
     }
+
+    // allocating record struct memory
+    *record = (Record *)malloc(sizeof(Record));
 
     Record *recordPtr = *record;
 
@@ -189,10 +193,13 @@ RC freeRecord (Record *record){
 
 RC getAttr (Record *record, Schema *schema, int attrNum, Value **value){
 
-    if(record == NULL || schema == NULL || attrNum<0 || attrNum>=schema->numAttr || value==NULL){
+    if(record == NULL || schema == NULL || attrNum<0 || attrNum>=schema->numAttr){
         return !RC_OK;
     }
 
+    *value = (Value *)malloc(sizeof(Value));
+
+    Value* valuePtr = *value;
     DataType dt =  schema->dataTypes[attrNum];
 
     int attrOffset = 0;
@@ -200,21 +207,21 @@ RC getAttr (Record *record, Schema *schema, int attrNum, Value **value){
         attrOffset += schema->typeLength[i];
     }
 
-    (*value)->dt =  dt;
+    valuePtr->dt =  dt;
 
     switch (dt){
         case DT_INT:
-            memcpy(&(*value)->v.intV, record->data + attrOffset, sizeof(int));
+            memcpy(&valuePtr->v.intV, record->data + attrOffset, sizeof(int));
             break;
         case DT_FLOAT:
-            memcpy(&(*value)->v.floatV, record->data + attrOffset, sizeof(float));
+            memcpy(&valuePtr->v.floatV, record->data + attrOffset, sizeof(float));
             break;
         case DT_BOOL:
-            memcpy(&(*value)->v.boolV, record->data + attrOffset, sizeof(bool));
+            memcpy(&valuePtr->v.boolV, record->data + attrOffset, sizeof(bool));
             break;
         case DT_STRING:
-            (*value)->v.stringV = (char *)malloc(schema->typeLength[attrNum]);
-            memcpy((*value)->v.stringV, record->data + attrOffset, schema->typeLength[attrNum]);
+            valuePtr->v.stringV = (char *)malloc(schema->typeLength[attrNum] + 1); // +1 for the null character
+            memcpy(valuePtr->v.stringV, record->data + attrOffset, schema->typeLength[attrNum] + 1);
             break;
         default:
             return RC_RM_UNKOWN_DATATYPE;
@@ -251,7 +258,7 @@ RC setAttr (Record *record, Schema *schema, int attrNum, Value *value){
             memcpy(record->data + attrOffset, &value->v.boolV, sizeof(bool));
             break;
         case DT_STRING:
-            memcpy(record->data + attrOffset, value->v.stringV, schema->typeLength[attrNum]);
+            memcpy(record->data + attrOffset, value->v.stringV, schema->typeLength[attrNum] + 1); // for null character
             break;
         default:
             return RC_RM_UNKOWN_DATATYPE;
