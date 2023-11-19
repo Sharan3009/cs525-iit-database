@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <stdlib.h>
 
 #include "record_mgr.h"
 
@@ -69,10 +70,36 @@ int getRecordSize (Schema *schema){
 }
 
 Schema *createSchema (int numAttr, char **attrNames, DataType *dataTypes, int *typeLength, int keySize, int *keys){
-    return NULL;
+
+    // allocating memory of Schema
+    Schema *schema = malloc(sizeof(Schema));
+
+    // assigning parameters to schema attributes
+    schema->numAttr = numAttr;
+    schema->attrNames = attrNames;
+    schema->dataTypes = dataTypes;
+    schema->typeLength = typeLength;
+    schema->keyAttrs = keys;
+    schema->keySize = keySize;
+    
+    return schema;
 }
 
 RC freeSchema (Schema *schema){
+
+    // Freeing attribute
+    for (int i = 0; i < schema->numAttr; i++) {
+        free(schema->attrNames[i]);
+    }
+    
+    // Freeing arrays
+    free(schema->attrNames);
+    free(schema->dataTypes);
+    free(schema->typeLength);
+    free(schema->keyAttrs);
+
+    free(schema);
+
     return RC_OK;
 }
 
