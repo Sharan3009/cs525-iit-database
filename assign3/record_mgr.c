@@ -66,7 +66,30 @@ RC closeScan (RM_ScanHandle *scan){
 
 // dealing with schemas
 int getRecordSize (Schema *schema){
-    return 0;
+
+    int recordSize = 0;
+
+    for (int i = 0; i < schema->numAttr; i++) {
+
+        switch (schema->dataTypes[i]) {
+            case DT_INT:
+                recordSize += sizeof(int);
+                break;
+            case DT_STRING:
+                recordSize += schema->typeLength[i];
+                break;
+            case DT_FLOAT:
+                recordSize += sizeof(float);
+                break;
+            case DT_BOOL:
+                recordSize += sizeof(bool);
+                break;
+            default:
+                // do nothing
+        }
+    }
+
+    return recordSize;
 }
 
 Schema *createSchema (int numAttr, char **attrNames, DataType *dataTypes, int *typeLength, int keySize, int *keys){
@@ -81,7 +104,7 @@ Schema *createSchema (int numAttr, char **attrNames, DataType *dataTypes, int *t
     schema->typeLength = typeLength;
     schema->keyAttrs = keys;
     schema->keySize = keySize;
-    
+
     return schema;
 }
 
