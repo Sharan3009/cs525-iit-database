@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 #include "record_mgr.h"
 
@@ -67,6 +68,11 @@ RC closeScan (RM_ScanHandle *scan){
 // dealing with schemas
 int getRecordSize (Schema *schema){
 
+    // error handling
+    if(schema == NULL) {
+        return -1;
+    }
+
     int recordSize = 0;
 
     for (int i = 0; i < schema->numAttr; i++) {
@@ -94,6 +100,19 @@ int getRecordSize (Schema *schema){
 
 Schema *createSchema (int numAttr, char **attrNames, DataType *dataTypes, int *typeLength, int keySize, int *keys){
 
+    // error handling
+    if(numAttr<=0 || attrNames==NULL || dataTypes==NULL || typeLength == NULL
+        || sizeof(attrNames)/sizeof(int)){
+        return NULL;
+    }
+
+    // Check if all have numAttr number of elements in it.
+    for (int i = 0; i < numAttr; i++) {
+        if (attrNames[i] == NULL || dataTypes == NULL || typeLength == NULL) {
+            return NULL;
+        }
+    }
+
     // allocating memory of Schema
     Schema *schema = malloc(sizeof(Schema));
 
@@ -110,6 +129,9 @@ Schema *createSchema (int numAttr, char **attrNames, DataType *dataTypes, int *t
 
 RC freeSchema (Schema *schema){
 
+    if(schema == NULL){
+        return !RC_OK;
+    }
     // Freeing attribute
     for (int i = 0; i < schema->numAttr; i++) {
         free(schema->attrNames[i]);
@@ -129,17 +151,83 @@ RC freeSchema (Schema *schema){
 
 // dealing with records and attribute values
 RC createRecord (Record **record, Schema *schema){
+
+    if(record == NULL || schema == NULL){
+        return !RC_OK;
+    }
+
+    int recordSize = getRecordSize(schema);
+    if(recordSize<0){
+        return !RC_OK;
+    }
+
+    Record *recordPtr = *record;
+
+    // initializing record id as -1
+    recordPtr->id.page = -1;
+    recordPtr->id.slot = -1;
+
+    // allocating memory for record data
+    recordPtr->data = (char *)malloc(recordSize);
+
     return RC_OK;
 }
 
 RC freeRecord (Record *record){
+    if(record == NULL){
+        return !RC_OK;
+    }
+
+    // free record data
+    free(record->data);
+
+    // free record itself
+    free(record);
+
     return RC_OK;
 }
 
 RC getAttr (Record *record, Schema *schema, int attrNum, Value **value){
+
+    if(record == NULL || schema == NULL || attrNum<0 || attrNum>=schema->numAttr || value==NULL){
+        return !RC_OK;
+    }
+
+    DataType dt =  schema->dataTypes[attrNum];
+
+    int attrOffset = 0;
+    for(int i=0;i<attrNum;i++){
+        attrOffset += schema->typeLength[i];
+    }
+
+    (*value)->dt =  dt;
+
+    switch (dt){
+        case DT_INT:
+            memcpy(&(*value)->v.intV, record->data + attrOffset, sizeof(int));
+            break;
+        case DT_FLOAT:
+            memcpy(&(*value)->v.floatV, record->data + attrOffset, sizeof(float));
+            break;
+        case DT_BOOL:
+            memcpy(&(*value)->v.boolV, record->data + attrOffset, sizeof(bool));
+            break;
+        case DT_STRING:
+            (*value)->v.stringV = (char *)malloc(schema->typeLength[attrNum] + 1);
+            memcpy((*value)->v.stringV, record->data + attrOffset, schema->typeLength[attrNum]);
+            (*value)->v.stringV[schema->typeLength[attrNum]] = '\0';
+            break;
+        default:
+            return RC_RM_UNKOWN_DATATYPE;
+    }
+
     return RC_OK;
 }
 
 RC setAttr (Record *record, Schema *schema, int attrNum, Value *value){
+
+    if(record == NULL || schema == NULL || attrNum<0 || attrNum>=schema->numAttr || value==NULL){
+        return !RC_OK;
+    }
     return RC_OK;
 }
