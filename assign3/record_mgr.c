@@ -101,16 +101,8 @@ int getRecordSize (Schema *schema){
 Schema *createSchema (int numAttr, char **attrNames, DataType *dataTypes, int *typeLength, int keySize, int *keys){
 
     // error handling
-    if(numAttr<=0 || attrNames==NULL || dataTypes==NULL || typeLength == NULL
-        || sizeof(attrNames)/sizeof(int)){
+    if(numAttr<=0 || attrNames==NULL || dataTypes==NULL || typeLength == NULL){
         return NULL;
-    }
-
-    // Check if all have numAttr number of elements in it.
-    for (int i = 0; i < numAttr; i++) {
-        if (attrNames[i] == NULL || dataTypes == NULL || typeLength == NULL) {
-            return NULL;
-        }
     }
 
     // allocating memory of Schema
