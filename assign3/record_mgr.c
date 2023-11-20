@@ -196,7 +196,22 @@ RC getAttr (Record *record, Schema *schema, int attrNum, Value **value){
 
     int attrOffset = 0;
     for(int i=0;i<attrNum;i++){
-        attrOffset += schema->typeLength[i];
+        switch (schema->dataTypes[i]){
+            case DT_INT:
+                attrOffset += sizeof(int);
+                break;
+            case DT_FLOAT:
+                attrOffset += sizeof(float);
+                break;
+            case DT_BOOL:
+                attrOffset += sizeof(bool);
+                break;
+            case DT_STRING:
+                attrOffset += (schema->typeLength[i] + 1);
+                break;
+            default:
+                return RC_RM_UNKOWN_DATATYPE;
+        }
     }
 
     valuePtr->dt =  dt;
@@ -236,7 +251,22 @@ RC setAttr (Record *record, Schema *schema, int attrNum, Value *value){
 
     int attrOffset = 0;
     for(int i=0;i<attrNum;i++){
-        attrOffset += schema->typeLength[i];
+        switch (schema->dataTypes[i]){
+            case DT_INT:
+                attrOffset += sizeof(int);
+                break;
+            case DT_FLOAT:
+                attrOffset += sizeof(float);
+                break;
+            case DT_BOOL:
+                attrOffset += sizeof(bool);
+                break;
+            case DT_STRING:
+                attrOffset += (schema->typeLength[i] + 1);
+                break;
+            default:
+                return RC_RM_UNKOWN_DATATYPE;
+        }
     }
 
     switch (dt){
