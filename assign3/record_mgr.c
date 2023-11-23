@@ -3,9 +3,12 @@
 #include <string.h>
 
 #include "record_mgr.h"
+#include "storage_mgr.h"
+#include "buffer_mgr.h"
 
 // table and manager
 RC initRecordManager (void *mgmtData){
+    initStorageManager();
     return RC_OK;
 }
 RC shutdownRecordManager (){
@@ -13,6 +16,49 @@ RC shutdownRecordManager (){
 }
 
 RC createTable (char *name, Schema *schema){
+    // Error handling
+    if (name == NULL || schema == NULL) {
+        return RC_FILE_NOT_FOUND;
+    }
+
+    RC ret = createPageFile(name);
+    if (ret != RC_OK) {
+        return ret;
+    }
+
+    // Open the page file
+    SM_FileHandle fh;
+    ret = openPageFile(name, &fh);
+    if (ret != RC_OK) {
+        return ret;
+    }
+
+    // trying to store schema in the first page
+    if (sizeof(Schema) > PAGE_SIZE) {
+        closePageFile(&fh);
+        return RC_READ_NON_EXISTING_PAGE;
+    }
+
+    // Write the schema to the first page
+    SM_PageHandle ph = (SM_PageHandle)malloc(PAGE_SIZE);
+    memset(ph, '\0', PAGE_SIZE);
+    memcpy(ph, schema, sizeof(Schema));
+    ret = writeBlock(0, &fh, ph);
+    if (ret != RC_OK) {
+        free(ph);
+        closePageFile(&fh);
+        return ret;
+    }
+
+    // Close the page file
+    ret = closePageFile(&fh);
+    if (ret != RC_OK) {
+        free(ph);
+        return ret;
+    }
+
+    free(ph);
+
     return RC_OK;
 }
 
@@ -25,7 +71,10 @@ RC closeTable (RM_TableData *rel){
 }
 
 RC deleteTable (char *name){
-    return RC_OK;
+    if (name == NULL) {
+        return RC_FILE_HANDLE_NOT_INIT;
+    }
+    return destroyPageFile(name);
 }
 
 int getNumTuples (RM_TableData *rel){
@@ -106,7 +155,8 @@ Schema *createSchema (int numAttr, char **attrNames, DataType *dataTypes, int *t
     }
 
     // allocating memory of Schema
-    Schema *schema = malloc(sizeof(Schema));
+    Schema *schema = (Schema *)malloc(sizeof(Schema));
+    memset(schema, '\0', sizeof(Schema));
 
     // assigning parameters to schema attributes
     schema->numAttr = numAttr;
