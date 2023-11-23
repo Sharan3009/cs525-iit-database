@@ -63,30 +63,46 @@ RC openTable (RM_TableData *rel, char *name){
         return RC_FILE_NOT_FOUND;
     }
 
-    SM_FileHandle fh;
-    RC ret = openPageFile(name, &fh);
+    BM_BufferPool *bm = MAKE_POOL();
+    
+    RC ret = initBufferPool(bm, name, 100, RS_LRU, NULL);
     if (ret != RC_OK) {
+        free(bm);
         return ret;
     }
 
-    SM_PageHandle ph = (SM_PageHandle)malloc(PAGE_SIZE);
-    ret = readFirstBlock(&fh, ph);
+    BM_PageHandle *firstPage = MAKE_PAGE_HANDLE();
+    ret = pinPage(bm, firstPage, 0);
     if (ret != RC_OK) {
-        free(ph);
-        closePageFile(&fh);
+        free(bm);
+        shutdownBufferPool(bm);
         return ret;
     }
-
+    // setting the name
     rel->name = name;
-    rel->schema = (Schema *)ph;
-
-    // Close the page file
-    ret = closePageFile(&fh);
-    free(ph);
+    // setting the schema
+    rel->schema = (Schema *)firstPage->data;
+    // setting buffer manager in mgmtData
+    rel->mgmtData = (void *)bm;
+    free(firstPage);
     return ret;
 }
 
 RC closeTable (RM_TableData *rel){
+
+    if(rel==NULL){
+        return RC_FILE_HANDLE_NOT_INIT;
+    }
+    // getting buffer manager from mgmtData
+    BM_BufferPool *bm = (BM_BufferPool *)rel->mgmtData;
+    // unpinning first page
+    BM_PageHandle *firstPage = MAKE_PAGE_HANDLE();
+    firstPage->pageNum = 0;
+    RC ret = unpinPage(bm, firstPage);
+    // cleaning
+    shutdownBufferPool(bm);
+    free(bm);
+    free(firstPage);
     return RC_OK;
 }
 
@@ -198,7 +214,7 @@ RC freeSchema (Schema *schema){
     for (int i = 0; i < schema->numAttr; i++) {
         free(schema->attrNames[i]);
     }
-    
+
     // Freeing arrays
     free(schema->attrNames);
     free(schema->dataTypes);
