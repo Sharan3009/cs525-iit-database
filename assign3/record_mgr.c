@@ -52,18 +52,38 @@ RC createTable (char *name, Schema *schema){
 
     // Close the page file
     ret = closePageFile(&fh);
-    if (ret != RC_OK) {
-        free(ph);
-        return ret;
-    }
-
     free(ph);
 
-    return RC_OK;
+    return ret;
 }
 
 RC openTable (RM_TableData *rel, char *name){
-    return RC_OK;
+
+    if (rel == NULL || name == NULL) {
+        return RC_FILE_NOT_FOUND;
+    }
+
+    SM_FileHandle fh;
+    RC ret = openPageFile(name, &fh);
+    if (ret != RC_OK) {
+        return ret;
+    }
+
+    SM_PageHandle ph = (SM_PageHandle)malloc(PAGE_SIZE);
+    ret = readFirstBlock(&fh, ph);
+    if (ret != RC_OK) {
+        free(ph);
+        closePageFile(&fh);
+        return ret;
+    }
+
+    rel->name = name;
+    rel->schema = (Schema *)ph;
+
+    // Close the page file
+    ret = closePageFile(&fh);
+    free(ph);
+    return ret;
 }
 
 RC closeTable (RM_TableData *rel){
