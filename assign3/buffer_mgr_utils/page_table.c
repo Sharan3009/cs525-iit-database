@@ -63,15 +63,14 @@ int putPage(BM_BufferPool *const bm, BM_PageHandle *const page){
 
     // Insert the entry into the found slot
     pageTable->table[index].pageNum = page->pageNum;
-    strcpy(pageTable->table[index].pageData, page->data); // Copy page data
-
+    memcpy(pageTable->table[index].pageData, page->data, PAGE_SIZE); // Copy page data
     return index;
 }
 
 int getPage(BM_BufferPool *const bm, BM_PageHandle *const page){
     // Retrieve the PageTable from bm->mgmtData
     PageTable *pageTable = getPageTable(bm);
-
+    
     int index = hasPage(bm, page->pageNum); // check if pageNum is already in the table
 
     if(index==-1){
