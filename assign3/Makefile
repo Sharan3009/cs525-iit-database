@@ -13,10 +13,10 @@ ALL_TESTS = $(DEFAULT_TESTS)
 all: $(ALL_TESTS)
 
 test_assign3_1: test_assign3_1.c $(COMMON_FILES)
-	gcc -o test_assign3_1 test_assign3_1.c $(COMMON_FILES)
+	gcc -g -o test_assign3_1 test_assign3_1.c $(COMMON_FILES)
 
 test_expr: test_expr.c $(COMMON_FILES)
-	gcc -o test_expr test_expr.c $(COMMON_FILES)
+	gcc -g -o test_expr test_expr.c $(COMMON_FILES)
 
 test: $(DEFAULT_TESTS)
 	./test_assign3_1
