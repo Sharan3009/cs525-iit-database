@@ -5,6 +5,7 @@
 #include "record_mgr.h"
 #include "storage_mgr.h"
 #include "buffer_mgr.h"
+#include "./record_mgr_utils/page_directory.h"
 
 // table and manager
 RC initRecordManager (void *mgmtData){
@@ -50,6 +51,11 @@ RC createTable (char *name, Schema *schema){
         return ret;
     }
 
+    if(ret = createDirectory(0, 1, 1, fh)!=RC_OK){
+        free(ph);
+        closePageFile(&fh);
+        return ret;
+    }
     // Close the page file
     ret = closePageFile(&fh);
     free(ph);
