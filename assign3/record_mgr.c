@@ -51,7 +51,7 @@ RC createTable (char *name, Schema *schema){
         return ret;
     }
 
-    if(ret = createDirectory(0, 1, 1, fh)!=RC_OK){
+    if(ret = createDirectories(0, 2, 1, &fh)!=RC_OK){
         free(ph);
         closePageFile(&fh);
         return ret;
