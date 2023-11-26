@@ -5,9 +5,7 @@ RC createDirectories(int currLevel, int totalLevels, PageNumber directoryPageNum
     RC ret = RC_OK;
     PageNumber parentPageNum = -1;
     PageNumber firstEntryPageNum = directoryPageNum + 1;
-    size_t sizeOfEntry = sizeof(DirectoryEntry);
-    size_t availableSpace = PAGE_SIZE - sizeof(RecordPage);
-    int numEntries = availableSpace / sizeOfEntry;
+    int numEntries = getNumEntries();
     for(int level=currLevel; level<totalLevels;level++){
         for (int i=0; i<pow(numEntries, level); i++) {
             ret = createDirectory(directoryPageNum++, -1, firstEntryPageNum, fh);
@@ -28,19 +26,14 @@ RC createDirectory(PageNumber directoryPageNum, PageNumber parentPageNum, PageNu
     memset(page, '\0', sizeof(RecordPage));
     page->isDirectory = true;
     page->parentPageNum = parentPageNum;
-    size_t sizeOfEntry = sizeof(DirectoryEntry);
     size_t availableSpace = PAGE_SIZE - sizeof(RecordPage);
     page->data = (char *)malloc(availableSpace);
     memset(page->data, '\0', availableSpace);
-    int numEntries = availableSpace / sizeOfEntry;
     DirectoryEntry *directoryEntries = (DirectoryEntry *)page->data;
-    for (int i=0; i<numEntries; i++) {
+    for (int i=0; i<getNumEntries(); i++) {
         DirectoryEntry *currentEntry = &directoryEntries[i];
         currentEntry->pageNum = firstEntryPageNum++;
         currentEntry->isFull = false;
-        // if((i==0 || i==numEntries-1) && (directoryPageNum==1 || directoryPageNum==2 || directoryPageNum==3)){
-        //     printf("creating directory=%d and entry=%d\n", directoryPageNum, currentEntry->pageNum);
-        // }
     }
     memcpy(ph, page, sizeof(RecordPage));
     memcpy(ph + sizeof(RecordPage), page->data, availableSpace);
@@ -56,4 +49,10 @@ RC createDirectory(PageNumber directoryPageNum, PageNumber parentPageNum, PageNu
     free(page->data);
     free(page);
     return ret;
+}
+
+int getNumEntries(){
+    size_t sizeOfEntry = sizeof(DirectoryEntry);
+    size_t availableSpace = PAGE_SIZE - sizeof(RecordPage);
+    return availableSpace / sizeOfEntry;
 }

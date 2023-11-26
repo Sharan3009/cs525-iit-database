@@ -17,3 +17,4 @@ typedef struct RecordPage {
 
 extern RC createDirectories(int currLevel, int totalLevels, PageNumber directoryPageNum, SM_FileHandle *fh);
 static RC createDirectory(PageNumber directoryPageNum, PageNumber parentPageNum, PageNumber firstEntryPageNum, SM_FileHandle *fh);
+static int getNumEntries();
