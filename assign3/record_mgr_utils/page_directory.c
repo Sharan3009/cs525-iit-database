@@ -1,41 +1,26 @@
 #include "page_directory.h"
+#include <math.h>
 
 RC createDirectories(int currLevel, int totalLevels, PageNumber directoryPageNum, SM_FileHandle *fh){
-    RC ret;
-    // creating root directory
-    if(ret = createDirectory(currLevel++, directoryPageNum, -1, fh)!=RC_OK){
-        return ret;
-    }
-    
-    PageNumber parentPageNum = directoryPageNum;
-    SM_PageHandle ph = (SM_PageHandle)malloc(PAGE_SIZE);
-    memset(ph, '\0', PAGE_SIZE);
+    RC ret = RC_OK;
+    PageNumber parentPageNum = -1;
+    PageNumber firstEntryPageNum = directoryPageNum + 1;
     size_t sizeOfEntry = sizeof(DirectoryEntry);
     size_t availableSpace = PAGE_SIZE - sizeof(RecordPage);
     int numEntries = availableSpace / sizeOfEntry;
-    while(currLevel<totalLevels){
-        ret = readBlock(parentPageNum, fh, ph);
-        if(ret!=RC_OK){
-            free(ph);
-            return ret;
-        }
-        DirectoryEntry *directoryEntries = (DirectoryEntry *)(RecordPage*)ph;
-        for (int i=0; i<numEntries; i++) {
-            DirectoryEntry *currentEntry = &directoryEntries[i];
-            ret = createDirectory(currLevel, currentEntry->pageNum, directoryPageNum, fh);
+    for(int level=currLevel; level<totalLevels;level++){
+        for (int i=0; i<pow(numEntries, level); i++) {
+            ret = createDirectory(directoryPageNum++, -1, firstEntryPageNum, fh);
             if(ret!=RC_OK){
-                free(ph);
                 return ret;
             }
-            currentEntry = &directoryEntries[++i];
+            firstEntryPageNum += numEntries;
         }
-        currLevel++;
     }
-    free(ph);
     return ret;
 }
 
-RC createDirectory(int level, PageNumber directoryPageNum, PageNumber parentPageNum, SM_FileHandle *fh){
+RC createDirectory(PageNumber directoryPageNum, PageNumber parentPageNum, PageNumber firstEntryPageNum, SM_FileHandle *fh){
     RC ret = RC_OK;
     SM_PageHandle ph = (SM_PageHandle)malloc(PAGE_SIZE);
     RecordPage *page = (RecordPage *)malloc(sizeof(RecordPage));
@@ -51,8 +36,11 @@ RC createDirectory(int level, PageNumber directoryPageNum, PageNumber parentPage
     DirectoryEntry *directoryEntries = (DirectoryEntry *)page->data;
     for (int i=0; i<numEntries; i++) {
         DirectoryEntry *currentEntry = &directoryEntries[i];
-        currentEntry->pageNum = level*numEntries + directoryPageNum + i + 1;
+        currentEntry->pageNum = firstEntryPageNum++;
         currentEntry->isFull = false;
+        // if((i==0 || i==numEntries-1) && (directoryPageNum==1 || directoryPageNum==2 || directoryPageNum==3)){
+        //     printf("creating directory=%d and entry=%d\n", directoryPageNum, currentEntry->pageNum);
+        // }
     }
     memcpy(ph, page, sizeof(RecordPage));
     memcpy(ph + sizeof(RecordPage), page->data, availableSpace);
