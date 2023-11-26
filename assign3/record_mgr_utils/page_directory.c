@@ -2,6 +2,10 @@
 #include <math.h>
 
 RC createDirectories(int currLevel, int totalLevels, PageNumber directoryPageNum, SM_FileHandle *fh){
+    // totalLevels should stay limited to 3 due to range of int
+    if(totalLevels>3){
+        totalLevels = 3;
+    }
     RC ret = RC_OK;
     PageNumber parentPageNum = -1;
     PageNumber firstEntryPageNum = directoryPageNum + 1;
