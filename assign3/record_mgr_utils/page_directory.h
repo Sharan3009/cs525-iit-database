@@ -12,7 +12,7 @@ typedef struct DirectoryEntry {
 typedef struct RecordPage {
     bool isDirectory;
     PageNumber parentPageNum;
-    char* data;
+    void* data;
 } RecordPage;
 
 extern RC createDirectories(int currLevel, int totalLevels, PageNumber directoryPageNum, SM_FileHandle *fh);

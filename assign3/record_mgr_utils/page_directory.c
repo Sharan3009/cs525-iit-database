@@ -38,14 +38,15 @@ RC createDirectories(int currLevel, int totalLevels, PageNumber directoryPageNum
 RC createDirectory(int level, PageNumber directoryPageNum, PageNumber parentPageNum, SM_FileHandle *fh){
     RC ret = RC_OK;
     SM_PageHandle ph = (SM_PageHandle)malloc(PAGE_SIZE);
-    RecordPage *page = (RecordPage *)malloc(PAGE_SIZE);
+    RecordPage *page = (RecordPage *)malloc(sizeof(RecordPage));
     memset(ph, '\0', PAGE_SIZE);
-    memset(page, '\0', PAGE_SIZE);
+    memset(page, '\0', sizeof(RecordPage));
     page->isDirectory = true;
     page->parentPageNum = parentPageNum;
-    page->data = (char *)(page + 1);
     size_t sizeOfEntry = sizeof(DirectoryEntry);
     size_t availableSpace = PAGE_SIZE - sizeof(RecordPage);
+    page->data = (char *)malloc(availableSpace);
+    memset(page->data, '\0', availableSpace);
     int numEntries = availableSpace / sizeOfEntry;
     DirectoryEntry *directoryEntries = (DirectoryEntry *)page->data;
     for (int i=0; i<numEntries; i++) {
@@ -53,16 +54,18 @@ RC createDirectory(int level, PageNumber directoryPageNum, PageNumber parentPage
         currentEntry->pageNum = level*numEntries + directoryPageNum + i + 1;
         currentEntry->isFull = false;
     }
-
-    memcpy(ph, page, PAGE_SIZE);
+    memcpy(ph, page, sizeof(RecordPage));
+    memcpy(ph + sizeof(RecordPage), page->data, availableSpace);
     ret = writeBlock(directoryPageNum, fh, ph);
     if(ret!=RC_OK){
         free(ph);
+        free(page->data);
         free(page);
         return RC_OK;
     }
-    
+
     free(ph);
+    free(page->data);
     free(page);
     return ret;
 }
