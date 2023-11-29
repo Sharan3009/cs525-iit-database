@@ -144,6 +144,34 @@ RC updateRecord (RM_TableData *rel, Record *record){
 }
 
 RC getRecord (RM_TableData *rel, RID id, Record *record){
+    if(rel==NULL || rel->mgmtData == NULL, id.page==-1 || id.slot==-1 || record ==NULL || record->data == NULL){
+        return RC_READ_NON_EXISTING_PAGE;
+    }
+    RC ret;
+    BM_BufferPool *bm = (BM_BufferPool*)rel->mgmtData;
+    BM_PageHandle *page = MAKE_PAGE_HANDLE();
+    memset(page, '\0', sizeof(BM_PageHandle));
+    if((ret=pinPage(bm, page, id.page))!=RC_OK){
+        return ret;
+    }
+    int recordSize = 0;
+    for(int i=0;i<rel->schema->numAttr;i++){
+        switch(rel->schema->dataTypes[i]){
+            case DT_INT:
+                recordSize+=sizeof(int);
+            case DT_FLOAT:
+                recordSize+=sizeof(float);
+            case DT_BOOL:
+                recordSize+=sizeof(bool);
+            case DT_STRING:
+                recordSize+=(rel->schema->typeLength[i] + 1);
+        }
+    }
+    int offset = id.slot*recordSize;
+    record->id.page = id.page;
+    record->id.slot = id.slot;
+    memcpy(record->data, page->data+offset, recordSize);
+    free(page);
     return RC_OK;
 }
 
