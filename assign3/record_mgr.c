@@ -7,6 +7,7 @@
 #include "buffer_mgr.h"
 #include "record_mgr_utils/record_mgr_serializer.h"
 #include "record_mgr_utils/record_index.h"
+#include "record_mgr_utils/page_directory.h"
 
 // table and manager
 RC initRecordManager (void *mgmtData){
@@ -80,12 +81,13 @@ RC openTable (RM_TableData *rel, char *name){
     Schema *schema = (Schema *)malloc(sizeof(Schema));
     deserializeSchemaFromPage(schema, firstPage->data);
     rel->schema = schema;
-    int sizemgmtData = sizeof(BM_BufferPool) + sizeof(RecordIndexLinkedList);
+    int sizemgmtData = sizeof(BM_BufferPool) + sizeof(RecordIndexLinkedList) + sizeof(PageDirectory);
     // setting buffer manager in mgmtData
     rel->mgmtData = (void *)malloc(sizemgmtData);
     memset(rel->mgmtData, '\0', sizemgmtData);
     memcpy(rel->mgmtData, bm, sizeof(BM_BufferPool));
-    initRecordIndex(rel->mgmtData);
+    initRecordIndex(rel);
+    initPageDirectory(rel);
     free(firstPage);
     free(bm);
     return ret;
@@ -103,7 +105,8 @@ RC closeTable (RM_TableData *rel){
     firstPage->pageNum = 0;
     RC ret = unpinPage(bm, firstPage);
     // cleaning
-    destroyRecordIndex(rel->mgmtData);
+    destroyRecordIndex(rel);
+    destroyPageDirectory(rel);
     shutdownBufferPool(bm);
     freeSchema(rel->schema);
     free(rel->mgmtData);
@@ -119,7 +122,7 @@ RC deleteTable (char *name){
 }
 
 int getNumTuples (RM_TableData *rel){
-    RecordIndexLinkedList *list = getRecordIndexList(rel->mgmtData);
+    RecordIndexLinkedList *list = getRecordIndexList(rel);
     RecordIndexNode *node = list->head;
     int count = 0;
     while(node!=NULL){

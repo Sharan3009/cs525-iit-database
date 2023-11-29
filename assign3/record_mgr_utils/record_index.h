@@ -14,13 +14,13 @@
         RecordIndexNode* head;
     } RecordIndexLinkedList;
 
-    extern void initRecordIndex(void* mgmtData);
-    extern RecordIndexLinkedList *getRecordIndexList(void* mgmtData);
+    extern void initRecordIndex(RM_TableData *rel);
+    extern RecordIndexLinkedList *getRecordIndexList(RM_TableData *rel);
     static RecordIndexNode *createRecordIndexNode(Record *record, Schema *schema);
     extern void insertRecordIndexNodeAtBeginning(RM_TableData *rel, Record *record);
     extern RC deleteRecordIndexNode(RM_TableData *rel, Record* record);
     extern RecordIndexNode *getRecordIndexNode(RM_TableData* rel, char* recordData);
-    extern void destroyRecordIndex(void* mgmtData);
+    extern void destroyRecordIndex(RM_TableData *rel);
     static RC getKeyFromRecordData(Schema *schema, char* recordData, RecordIndexNode *node);
     static int getKeySize(Schema *schema);
 

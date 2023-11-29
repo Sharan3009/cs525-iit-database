@@ -3,15 +3,15 @@
 #include <string.h>
 #include "record_index.h"
 
-void initRecordIndex(void* mgmtData){
+void initRecordIndex(RM_TableData *rel){
     RecordIndexLinkedList * list = (RecordIndexLinkedList *)malloc(sizeof(RecordIndexLinkedList));
     memset(list, '\0', sizeof(RecordIndexLinkedList));
-    memcpy((char*)mgmtData + sizeof(BM_BufferPool), list, sizeof(RecordIndexLinkedList));
+    memcpy((char*)rel->mgmtData + sizeof(BM_BufferPool), list, sizeof(RecordIndexLinkedList));
     free(list);
 }
 
-RecordIndexLinkedList *getRecordIndexList(void* mgmtData){
-    return (RecordIndexLinkedList *)((char*)mgmtData + sizeof(BM_BufferPool));
+RecordIndexLinkedList *getRecordIndexList(RM_TableData *rel){
+    return (RecordIndexLinkedList *)((char*)rel->mgmtData + sizeof(BM_BufferPool));
 }
 
 RecordIndexNode *createRecordIndexNode(Record *record, Schema *schema){
@@ -27,7 +27,7 @@ RecordIndexNode *createRecordIndexNode(Record *record, Schema *schema){
 }
 
 void insertRecordIndexNodeAtBeginning(RM_TableData *rel, Record *record) {
-    RecordIndexLinkedList *list = getRecordIndexList(rel->mgmtData);
+    RecordIndexLinkedList *list = getRecordIndexList(rel);
     RecordIndexNode* newNode = createRecordIndexNode(record, rel->schema);
     if (list->head == NULL) {
         list->head = newNode;
@@ -39,7 +39,7 @@ void insertRecordIndexNodeAtBeginning(RM_TableData *rel, Record *record) {
 
 // Delete a node with given data from the linked list
 RC deleteRecordIndexNode(RM_TableData *rel, Record* record) {
-    RecordIndexLinkedList *list = getRecordIndexList(rel->mgmtData);
+    RecordIndexLinkedList *list = getRecordIndexList(rel);
     RecordIndexNode* temp = list->head;
     RecordIndexNode* prev = NULL;
 
@@ -66,7 +66,7 @@ RC deleteRecordIndexNode(RM_TableData *rel, Record* record) {
 }
 
 RecordIndexNode *getRecordIndexNode(RM_TableData* rel, char* recordData) {
-    RecordIndexLinkedList *list = getRecordIndexList(rel->mgmtData);
+    RecordIndexLinkedList *list = getRecordIndexList(rel);
     int keySize = getKeySize(rel->schema);
     RecordIndexNode *key = malloc(sizeof(RecordIndexNode));
     memset(key, '\0', sizeof(RecordIndexNode));
@@ -87,8 +87,8 @@ RecordIndexNode *getRecordIndexNode(RM_TableData* rel, char* recordData) {
     return temp;
 }
 
-void destroyRecordIndex(void* mgmtData){
-    RecordIndexLinkedList *list = getRecordIndexList(mgmtData);
+void destroyRecordIndex(RM_TableData *rel){
+    RecordIndexLinkedList *list = getRecordIndexList(rel);
     RecordIndexNode* temp = list->head;
     RecordIndexNode* next = NULL;
 
