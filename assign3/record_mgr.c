@@ -5,6 +5,7 @@
 #include "record_mgr.h"
 #include "storage_mgr.h"
 #include "buffer_mgr.h"
+#include "record_mgr_utils/record_mgr_serializer.h"
 
 // table and manager
 RC initRecordManager (void *mgmtData){
@@ -33,16 +34,10 @@ RC createTable (char *name, Schema *schema){
         return ret;
     }
 
-    // trying to store schema in the first page
-    if (sizeof(Schema) > PAGE_SIZE) {
-        closePageFile(&fh);
-        return RC_READ_NON_EXISTING_PAGE;
-    }
-
     // Write the schema to the first page
     SM_PageHandle ph = (SM_PageHandle)malloc(PAGE_SIZE);
     memset(ph, '\0', PAGE_SIZE);
-    memcpy(ph, schema, sizeof(Schema));
+    serializeSchemaIntoPage(schema, ph);
     ret = writeBlock(0, &fh, ph);
     if (ret != RC_OK) {
         free(ph);
@@ -81,7 +76,9 @@ RC openTable (RM_TableData *rel, char *name){
     // setting the name
     rel->name = name;
     // setting the schema
-    rel->schema = (Schema *)firstPage->data;
+    Schema *schema = (Schema *)malloc(sizeof(Schema));
+    deserializeSchemaFromPage(schema, firstPage->data);
+    rel->schema = schema;
     // setting buffer manager in mgmtData
     rel->mgmtData = (void *)bm;
     free(firstPage);
@@ -101,6 +98,7 @@ RC closeTable (RM_TableData *rel){
     RC ret = unpinPage(bm, firstPage);
     // cleaning
     shutdownBufferPool(bm);
+    freeSchema(rel->schema);
     free(bm);
     free(firstPage);
     return RC_OK;
