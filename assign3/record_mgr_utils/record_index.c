@@ -3,6 +3,17 @@
 #include <string.h>
 #include "record_index.h"
 
+void initRecordIndex(void* mgmtData){
+    RecordIndexLinkedList * list = (RecordIndexLinkedList *)malloc(sizeof(RecordIndexLinkedList));
+    memset(list, '\0', sizeof(RecordIndexLinkedList));
+    memcpy((char*)mgmtData + sizeof(BM_BufferPool), list, sizeof(RecordIndexLinkedList));
+    free(list);
+}
+
+RecordIndexLinkedList *getRecordIndexList(void* mgmtData){
+    return (RecordIndexLinkedList *)((char*)mgmtData + sizeof(BM_BufferPool));
+}
+
 RecordIndexNode *createRecordIndexNode(Record *record, Schema *schema){
     RecordIndexNode *node = (RecordIndexNode *)malloc(sizeof(RecordIndexNode));
     node->pageNum = record->id.page;
@@ -14,7 +25,8 @@ RecordIndexNode *createRecordIndexNode(Record *record, Schema *schema){
     return node;
 }
 
-void insertRecordIndexNodeAtBeginning(RecordIndexLinkedList* list, Record *record, Schema *schema) {
+void insertRecordIndexNodeAtBeginning(void *mgmtData, Record *record, Schema *schema) {
+    RecordIndexLinkedList *list = getRecordIndexList(mgmtData);
     RecordIndexNode* newNode = createRecordIndexNode(record, schema);
     if (list->head == NULL) {
         list->head = newNode;
@@ -25,7 +37,8 @@ void insertRecordIndexNodeAtBeginning(RecordIndexLinkedList* list, Record *recor
 }
 
 // Delete a node with given data from the linked list
-RC deleteRecordIndexNode(RecordIndexLinkedList* list, Record* record, Schema *schema) {
+RC deleteRecordIndexNode(void *mgmtData, Record* record) {
+    RecordIndexLinkedList *list = getRecordIndexList(mgmtData);
     RecordIndexNode* temp = list->head;
     RecordIndexNode* prev = NULL;
 
@@ -49,6 +62,33 @@ RC deleteRecordIndexNode(RecordIndexLinkedList* list, Record* record, Schema *sc
     free(temp);
 
     return RC_OK;
+}
+
+RecordIndexNode *getRecordIndexNode(void *mgmtData, Record* record) {
+    RecordIndexLinkedList *list = getRecordIndexList(mgmtData);
+    RecordIndexNode* temp = list->head;
+    RecordIndexNode* prev = NULL;
+
+    while (temp != NULL && record->id.page != temp->pageNum && record->id.slot != temp->slot) {
+        prev = temp;
+        temp = temp->next;
+    }
+
+    return temp;
+}
+
+void destroyRecordIndex(void* mgmtData){
+    RecordIndexLinkedList *list = getRecordIndexList(mgmtData);
+    RecordIndexNode* temp = list->head;
+    RecordIndexNode* next = NULL;
+
+    while (temp != NULL) {
+        next = temp->next;
+        free(temp);
+        temp = next;
+    }
+
+    list->head = NULL; 
 }
 
 RC getKeyFromRecordData(Schema *schema, char* recordData, RecordIndexNode *node){
