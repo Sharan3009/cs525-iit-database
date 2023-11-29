@@ -18,7 +18,9 @@ RecordIndexNode *createRecordIndexNode(Record *record, Schema *schema){
     RecordIndexNode *node = (RecordIndexNode *)malloc(sizeof(RecordIndexNode));
     node->pageNum = record->id.page;
     node->slot = record->id.slot;
-    node->data = malloc(getKeySize(schema));
+    int keySize = getKeySize(schema);
+    node->data = malloc(keySize);
+    memset(node->data, '\0', keySize);
     if(getKeyFromRecordData(schema, record->data, node)!=RC_OK){
         return NULL;
     }
@@ -26,7 +28,7 @@ RecordIndexNode *createRecordIndexNode(Record *record, Schema *schema){
     return node;
 }
 
-void insertRecordIndexNodeAtBeginning(RM_TableData *rel, Record *record) {
+void insertRecordIndexNode(RM_TableData *rel, Record *record) {
     RecordIndexLinkedList *list = getRecordIndexList(rel);
     RecordIndexNode* newNode = createRecordIndexNode(record, rel->schema);
     if (list->head == NULL) {
@@ -38,12 +40,12 @@ void insertRecordIndexNodeAtBeginning(RM_TableData *rel, Record *record) {
 }
 
 // Delete a node with given data from the linked list
-RC deleteRecordIndexNode(RM_TableData *rel, Record* record) {
+RC deleteRecordIndexNode(RM_TableData *rel, RID id) {
     RecordIndexLinkedList *list = getRecordIndexList(rel);
     RecordIndexNode* temp = list->head;
     RecordIndexNode* prev = NULL;
 
-    while (temp != NULL && record->id.page != temp->pageNum && record->id.slot != temp->slot) {
+    while (temp != NULL && id.page != temp->pageNum && id.slot != temp->slot) {
         prev = temp;
         temp = temp->next;
     }
@@ -65,25 +67,37 @@ RC deleteRecordIndexNode(RM_TableData *rel, Record* record) {
     return RC_OK;
 }
 
-RecordIndexNode *getRecordIndexNode(RM_TableData* rel, char* recordData) {
+RecordIndexNode *getRecordIndexNodeByKey(RM_TableData* rel, Record* record) {
     RecordIndexLinkedList *list = getRecordIndexList(rel);
     int keySize = getKeySize(rel->schema);
     RecordIndexNode *key = malloc(sizeof(RecordIndexNode));
     memset(key, '\0', sizeof(RecordIndexNode));
     key->data = malloc(keySize);
     memset(key->data, '\0', keySize);
-    if(getKeyFromRecordData(rel->schema, recordData, key)!=RC_OK){
+    if(getKeyFromRecordData(rel->schema, record->data, key)!=RC_OK){
         return NULL;
     }
     RecordIndexNode* temp = list->head;
     RecordIndexNode* prev = NULL;
 
-    while (temp != NULL && memcmp(temp->data, key, keySize)!=0) {
+    while (temp != NULL && memcmp(temp->data, key->data, keySize)!=0) {
         prev = temp;
         temp = temp->next;
     }
     free(key->data);
     free(key);
+    return temp;
+}
+
+RecordIndexNode *getRecordIndexNodeById(RM_TableData* rel, RID id) {
+    RecordIndexLinkedList *list = getRecordIndexList(rel);
+    RecordIndexNode* temp = list->head;
+    RecordIndexNode* prev = NULL;
+
+    while (temp != NULL && id.page != temp->pageNum && id.slot != temp->slot) {
+        prev = temp;
+        temp = temp->next;
+    }
     return temp;
 }
 
@@ -103,7 +117,6 @@ void destroyRecordIndex(RM_TableData *rel){
 }
 
 RC getKeyFromRecordData(Schema *schema, char* recordData, RecordIndexNode *node){
-    
     for(int attr=0; attr<schema->numAttr;attr++){
 
         int size = 0;

@@ -135,20 +135,124 @@ int getNumTuples (RM_TableData *rel){
 
 // handling records in a table
 RC insertRecord (RM_TableData *rel, Record *record){
+    if(rel == NULL || rel->schema == NULL || rel->mgmtData == NULL || record == NULL || record->data == NULL){
+        return RC_READ_NON_EXISTING_PAGE;
+    }
+    // if record already exist based on key then return
+    if(getRecordIndexNodeByKey(rel, record)!=NULL){
+        return RC_IM_KEY_ALREADY_EXISTS;
+    }
+    // find empty page and slot
+    PageNumber emptyPage = getEmptyPage(rel);
+    BM_BufferPool *bm = (BM_BufferPool *)rel->mgmtData;
+    BM_PageHandle *page = MAKE_PAGE_HANDLE();
+    memset(page, '\0', sizeof(BM_PageHandle));
+    RC ret = pinPage(bm, page, emptyPage);
+    if(ret!=RC_OK){
+        free(page);
+        return ret;
+    }
+    int recordSize = getRecordSize(rel->schema);
+    char *emptyRecord = malloc(recordSize);
+    memset(emptyRecord,'\0', recordSize);
+    int slots = PAGE_SIZE/recordSize;
+    int slot;
+    for(slot=0;slot<slots;slot++){
+        if(memcmp(page->data + slot*recordSize, emptyRecord, recordSize)==0){
+            memcpy(page->data + slot*recordSize, record->data, recordSize);
+            markDirty(bm, page);
+            break;
+        }
+    }
+    free(emptyRecord);
+    unpinPage(bm, page);
+    free(page);
+    record->id.page = emptyPage;
+    record->id.slot = slot;
+
+    // insert key into index
+    insertRecordIndexNode(rel, record);
+
+    // update page directory if page is full
+    if(slot == slots-1){ // last slot
+        updatePageInPageDirectory(rel, emptyPage, true);
+    }
+
     return RC_OK;
 }
 
 RC deleteRecord (RM_TableData *rel, RID id){
+    if(rel==NULL || rel->schema == NULL || rel->mgmtData == NULL || id.page<=0 || id.slot<0){
+        return RC_READ_NON_EXISTING_PAGE;
+    }
+    // delete from database
+    BM_BufferPool *bm = (BM_BufferPool *)rel->mgmtData;
+    BM_PageHandle *page = MAKE_PAGE_HANDLE();
+    memset(page, '\0', sizeof(BM_PageHandle));
+    RC ret = pinPage(bm, page, id.page);
+    if(ret!=RC_OK){
+        free(page);
+        return ret;
+    }
+    int recordSize = getRecordSize(rel->schema);
+    memset(page->data + id.slot*recordSize, '\0', recordSize);
+    ret = unpinPage(bm, page);
+    if(ret!=RC_OK){
+        free(page);
+        return ret;
+    }
+    ret = markDirty(bm, page);
+    if(ret!=RC_OK){
+        free(page);
+        return ret;
+    }
+    free(page);
+    // delete from index
+    deleteRecordIndexNode(rel, id);
+    // mark page as not full because we just deleted
+    updatePageInPageDirectory(rel, id.page, false);
     return RC_OK;
 }
 
 RC updateRecord (RM_TableData *rel, Record *record){
+    if(rel == NULL || rel->schema == NULL || rel->mgmtData == NULL || record->id.page<=0 || record->id.slot<0){
+        return RC_READ_NON_EXISTING_PAGE;
+    }
+    if(getRecordIndexNodeById(rel, record->id)==NULL){
+        return RC_IM_KEY_NOT_FOUND;
+    }
+
+    // update in database
+    BM_BufferPool *bm = (BM_BufferPool *)rel->mgmtData;
+    BM_PageHandle *page = MAKE_PAGE_HANDLE();
+    memset(page, '\0', sizeof(BM_PageHandle));
+    RC ret = pinPage(bm, page, record->id.page);
+    if(ret!=RC_OK){
+        free(page);
+        return ret;
+    }
+    int recordSize = getRecordSize(rel->schema);
+    memcpy(page->data + record->id.slot*recordSize, record->data, recordSize);
+    ret = unpinPage(bm, page);
+    if(ret!=RC_OK){
+        free(page);
+        return ret;
+    }
+    ret = markDirty(bm, page);
+    if(ret!=RC_OK){
+        free(page);
+        return ret;
+    }
+    free(page);
     return RC_OK;
 }
 
 RC getRecord (RM_TableData *rel, RID id, Record *record){
     if(rel==NULL || rel->mgmtData == NULL, id.page==-1 || id.slot==-1 || record ==NULL || record->data == NULL){
         return RC_READ_NON_EXISTING_PAGE;
+    }
+    if(getRecordIndexNodeById(rel, id) == NULL){
+        return RC_IM_KEY_NOT_FOUND;
     }
     RC ret;
     BM_BufferPool *bm = (BM_BufferPool*)rel->mgmtData;
@@ -162,18 +266,27 @@ RC getRecord (RM_TableData *rel, RID id, Record *record){
         switch(rel->schema->dataTypes[i]){
             case DT_INT:
                 recordSize+=sizeof(int);
+                break;
             case DT_FLOAT:
                 recordSize+=sizeof(float);
+                break;
             case DT_BOOL:
                 recordSize+=sizeof(bool);
+                break;
             case DT_STRING:
                 recordSize+=(rel->schema->typeLength[i] + 1);
+                break;
         }
     }
     int offset = id.slot*recordSize;
     record->id.page = id.page;
     record->id.slot = id.slot;
     memcpy(record->data, page->data+offset, recordSize);
+    ret = unpinPage(bm, page);
+    if(ret!=RC_OK){
+        free(page);
+        return ret;
+    }
     free(page);
     return RC_OK;
 }
