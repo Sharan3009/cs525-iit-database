@@ -6,6 +6,8 @@
 void initRecordIndex(RM_TableData *rel){
     RecordIndexLinkedList * list = (RecordIndexLinkedList *)malloc(sizeof(RecordIndexLinkedList));
     memset(list, '\0', sizeof(RecordIndexLinkedList));
+    list->size = 0;
+    list->head = NULL;
     memcpy((char*)rel->mgmtData + sizeof(BM_BufferPool), list, sizeof(RecordIndexLinkedList));
     free(list);
 }
@@ -30,6 +32,7 @@ RecordIndexNode *createRecordIndexNode(Record *record, Schema *schema){
 
 void insertRecordIndexNode(RM_TableData *rel, Record *record) {
     RecordIndexLinkedList *list = getRecordIndexList(rel);
+    list->size++;
     RecordIndexNode* newNode = createRecordIndexNode(record, rel->schema);
     if (list->head == NULL) {
         list->head = newNode;
@@ -62,6 +65,7 @@ RC deleteRecordIndexNode(RM_TableData *rel, RID id) {
         prev->next = temp->next;
     }
     temp->next = NULL;
+    list->size--;
     free(temp);
 
     return RC_OK;
@@ -112,6 +116,7 @@ void destroyRecordIndex(RM_TableData *rel){
         free(temp);
         temp = next;
     }
+    list->size = 0;
 
     list->head = NULL; 
 }

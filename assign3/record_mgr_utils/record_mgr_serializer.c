@@ -3,21 +3,6 @@
 #include <string.h>
 #include "record_mgr_serializer.h"
 
-int serializedSchemasize(Schema *schema) {
-    // numAttr and attrnames
-    int size = sizeof(int) + schema->numAttr * sizeof(char*);
-    
-    // properties depending on numAttr
-    for (int i = 0; i < schema->numAttr; i++) {
-        size += strlen(schema->attrNames[i]) + 1; // +1 for null character
-        size += sizeof(DataType);
-        size += sizeof(int);
-    }
-    // keySize and keyAttrs
-    size += sizeof(int) + schema->keySize * sizeof(int);
-    return size;
-}
-
 void serializeSchemaIntoPage(Schema *schema, char *page){
     char *ptr = page;
 
@@ -81,4 +66,17 @@ void deserializeSchemaFromPage(Schema *schema, char* page){
     // Deserialize keyAttrs
     schema->keyAttrs = malloc(schema->keySize * sizeof(int));
     memcpy(schema->keyAttrs, ptr, schema->keySize * sizeof(int));
+}
+
+void serializeRecordIndexIntoPage(RecordIndexLinkedList *list, char* page){
+    
+}
+void deserializeRecordIndexFromPage(RecordIndexLinkedList *list, char* page){
+    
+}
+void serializePageDirectoryIntoPage(PageDirectory *directory, char* page){
+    
+}
+void deserializePageDirectoryFromPage(PageDirectory *directory, char* page){
+    
 }

@@ -11,6 +11,7 @@
     } RecordIndexNode;
 
     typedef struct RecordIndexLinkedList {
+        int size;
         RecordIndexNode* head;
     } RecordIndexLinkedList;
 

@@ -6,8 +6,6 @@
 #include "storage_mgr.h"
 #include "buffer_mgr.h"
 #include "record_mgr_utils/record_mgr_serializer.h"
-#include "record_mgr_utils/record_index.h"
-#include "record_mgr_utils/page_directory.h"
 
 // table and manager
 RC initRecordManager (void *mgmtData){
@@ -122,14 +120,7 @@ RC deleteTable (char *name){
 }
 
 int getNumTuples (RM_TableData *rel){
-    RecordIndexLinkedList *list = getRecordIndexList(rel);
-    RecordIndexNode *node = list->head;
-    int count = 0;
-    while(node!=NULL){
-        node = node->next;
-        count++;
-    }
-    return count;
+    return getRecordIndexList(rel)->size;
 }
 
 
