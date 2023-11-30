@@ -7,8 +7,6 @@
 #define READ "r"
 #define WRITE "wb+"
 
-char *fileName = NULL;
-
 void initRecordIndex(RM_TableData *rel){
 
     // opening file
@@ -83,7 +81,7 @@ RC deleteRecordIndexNode(RM_TableData *rel, RID id) {
     RecordIndexNode* temp = list->head;
     RecordIndexNode* prev = NULL;
 
-    while (temp != NULL && id.page != temp->pageNum && id.slot != temp->slot) {
+    while (temp != NULL && !(id.page == temp->pageNum && id.slot == temp->slot)) {
         prev = temp;
         temp = temp->next;
     }
@@ -101,6 +99,7 @@ RC deleteRecordIndexNode(RM_TableData *rel, RID id) {
     }
     temp->next = NULL;
     list->size--;
+    free(temp->data);
     free(temp);
 
     return RC_OK;
@@ -131,8 +130,7 @@ RecordIndexNode *getRecordIndexNodeById(RM_TableData* rel, RID id) {
     RecordIndexLinkedList *list = getRecordIndexList(rel);
     RecordIndexNode* temp = list->head;
     RecordIndexNode* prev = NULL;
-
-    while (temp != NULL && id.page != temp->pageNum && id.slot != temp->slot) {
+    while (temp != NULL && !(id.page == temp->pageNum && id.slot == temp->slot)) {
         prev = temp;
         temp = temp->next;
     }

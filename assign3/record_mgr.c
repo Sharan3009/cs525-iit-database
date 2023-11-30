@@ -201,7 +201,9 @@ RC deleteRecord (RM_TableData *rel, RID id){
     }
     free(page);
     // delete from index
-    deleteRecordIndexNode(rel, id);
+    if((ret = deleteRecordIndexNode(rel, id))!=RC_OK){
+        return ret;
+    }
     // mark page as not full because we just deleted
     updatePageInPageDirectory(rel, id.page, false);
     return RC_OK;
