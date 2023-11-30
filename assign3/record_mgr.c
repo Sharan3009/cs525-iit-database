@@ -7,6 +7,16 @@
 #include "buffer_mgr.h"
 #include "record_mgr_utils/record_mgr_serializer.h"
 
+typedef struct ScanMetadata {
+    Expr *expr;
+    int recordSize;
+    int slots;
+    int totalTuples;
+    int page;
+    int slot;
+    int currTuple;
+} ScanMetadata;
+
 // table and manager
 RC initRecordManager (void *mgmtData){
     initStorageManager();
@@ -295,23 +305,18 @@ RC startScan (RM_TableData *rel, RM_ScanHandle *scan, Expr *cond){
     // setting table
     scan->rel = rel;
 
-    // size for scan mgmtData
-    int size = sizeof(Expr) + 5*sizeof(int);
+    // setting scan metadata
+    ScanMetadata *md = malloc(sizeof(ScanMetadata));
+    memset(md, '\0', sizeof(ScanMetadata));
+    md->expr = cond;
+    md->recordSize = getRecordSize(rel->schema);
+    md->slots = PAGE_SIZE/md->recordSize;
+    md->totalTuples = getNumTuples(rel);
+    md->page = 1;
+    md->slot = 0;
+    md->currTuple = 0;
 
-    // storing expression, currPage, curr slot, total slots, currtuple num, total tuples
-    int page = 1;
-    int slot = 0;
-    int slots = PAGE_SIZE/getRecordSize(rel->schema);
-    int currTuple = 1;
-    int numTuples = getNumTuples(rel);
-    scan->mgmtData = (void*)malloc(size);
-    memset(scan->mgmtData, '\0', size);
-    memcpy(scan->mgmtData, cond, sizeof(Expr));
-    memcpy((char*)scan->mgmtData + sizeof(Expr), &page, sizeof(int));
-    memcpy((char *)scan->mgmtData + sizeof(Expr) + sizeof(int), &slot, sizeof(int));
-    memcpy((char *)scan->mgmtData + sizeof(Expr) + 2*sizeof(int), &slots, sizeof(int));
-    memcpy((char *)scan->mgmtData + sizeof(Expr) + 3*sizeof(int), &currTuple, sizeof(int));   
-    memcpy((char *)scan->mgmtData + sizeof(Expr) + 4*sizeof(int), &numTuples, sizeof(int));   
+   scan->mgmtData = md;
     return RC_OK;
 }
 
@@ -320,39 +325,31 @@ RC next (RM_ScanHandle *scan, Record *record){
         return RC_FILE_HANDLE_NOT_INIT;
     }
     // deserializing data stored in mgmtData
-    Expr *expr = (Expr *)scan->mgmtData;
-    int *page = (int*)((char *)scan->mgmtData + sizeof(Expr));
-    int *slot = (int*)((char *)scan->mgmtData + sizeof(Expr) + sizeof(int));
-    int slots = *(int*)((char *)scan->mgmtData + sizeof(Expr) + 2*sizeof(int));
-    int *currTuple = (int*)((char *)scan->mgmtData + sizeof(Expr) + 3*sizeof(int));
-    int numTuples = *(int*)((char *)scan->mgmtData + sizeof(Expr) + 4*sizeof(int));
+    ScanMetadata *md = (ScanMetadata *)scan->mgmtData;
+    while(md->currTuple < md->totalTuples){
+        RID rid;
+        rid.page = md->page;
+        rid.slot = md->slot;
+        getRecord(scan->rel, rid, record);
 
+        md->currTuple++;
+        if(md->slot+1 == md->slots){
+            md->page++;
+            md->slot = 0;
+        } else {
+            md->slot++;
+        }
+
+        Value *val;
+        evalExpr(record, scan->rel->schema, md->expr, &val);
+        if(val->v.boolV==true){
+            free(val);
+            return RC_OK;
+        }
+        free(val);
+    }
     // return if tuples exceeded
-    if(*currTuple>numTuples){
-        return RC_RM_NO_MORE_TUPLES;
-    }
-
-    // get recording using slot and page
-    RID rid;
-    rid.page = *page;
-    rid.slot = *slot;
-    getRecord(scan->rel, rid, record);
-
-    // increment slot, page and currTuple accordingly
-    (*currTuple)++;
-    if(*slot+1==slots){
-        (*page)++;
-        *slot=0;
-    } else {
-        (*slot)++;
-    }
-    
-    // using evalExpr from expr.c file
-    Value *val;
-    evalExpr(record, scan->rel->schema, expr, &val);
-    free(val);
-    
-    return RC_OK;
+    return RC_RM_NO_MORE_TUPLES;
 }
 
 RC closeScan (RM_ScanHandle *scan){
