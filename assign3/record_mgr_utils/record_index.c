@@ -131,7 +131,6 @@ RecordIndexNode *getRecordIndexNodeById(RM_TableData* rel, RID id) {
     RecordIndexLinkedList *list = getRecordIndexList(rel);
     RecordIndexNode* temp = list->head;
     RecordIndexNode* prev = NULL;
-    printf("list head=%p\n", temp);
 
     while (temp != NULL && id.page != temp->pageNum && id.slot != temp->slot) {
         prev = temp;
