@@ -7,8 +7,8 @@ RECORD_MGR = rm_serializer.c expr.c record_mgr.c $(RECORD_MGR_UTILS)
 # List of common source files
 COMMON_FILES = $(STORAGE_MGR) $(BUFFER_MGR) $(RECORD_MGR)
 
-DEFAULT_TESTS = test_assign3_1 test_expr
-ALL_TESTS = $(DEFAULT_TESTS)
+DEFAULT_TESTS = test_assign3_1
+ALL_TESTS = $(DEFAULT_TESTS) test_expr
 
 .PHONY: all
 all: $(ALL_TESTS)
@@ -21,7 +21,6 @@ test_expr: test_expr.c $(COMMON_FILES)
 
 test: $(DEFAULT_TESTS)
 	./test_assign3_1
-	./test_expr
 	
 test-all: $(ALL_TESTS)
 	./test_assign3_1
