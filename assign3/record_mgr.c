@@ -289,14 +289,74 @@ RC getRecord (RM_TableData *rel, RID id, Record *record){
 
 // scans
 RC startScan (RM_TableData *rel, RM_ScanHandle *scan, Expr *cond){
+    if(rel==NULL || rel->mgmtData==NULL || scan == NULL || cond == NULL){
+        return RC_FILE_HANDLE_NOT_INIT;
+    }
+    // setting table
+    scan->rel = rel;
+
+    // size for scan mgmtData
+    int size = sizeof(Expr) + 5*sizeof(int);
+
+    // storing expression, currPage, curr slot, total slots, currtuple num, total tuples
+    int page = 1;
+    int slot = 0;
+    int slots = PAGE_SIZE/getRecordSize(rel->schema);
+    int currTuple = 1;
+    int numTuples = getNumTuples(rel);
+    scan->mgmtData = (void*)malloc(size);
+    memset(scan->mgmtData, '\0', size);
+    memcpy(scan->mgmtData, cond, sizeof(Expr));
+    memcpy((char*)scan->mgmtData + sizeof(Expr), &page, sizeof(int));
+    memcpy((char *)scan->mgmtData + sizeof(Expr) + sizeof(int), &slot, sizeof(int));
+    memcpy((char *)scan->mgmtData + sizeof(Expr) + 2*sizeof(int), &slots, sizeof(int));
+    memcpy((char *)scan->mgmtData + sizeof(Expr) + 3*sizeof(int), &currTuple, sizeof(int));   
+    memcpy((char *)scan->mgmtData + sizeof(Expr) + 4*sizeof(int), &numTuples, sizeof(int));   
     return RC_OK;
 }
 
 RC next (RM_ScanHandle *scan, Record *record){
+    if(scan==NULL || scan->rel == NULL || scan->mgmtData == NULL){
+        return RC_FILE_HANDLE_NOT_INIT;
+    }
+    // deserializing data stored in mgmtData
+    Expr *expr = (Expr *)scan->mgmtData;
+    int *page = (int*)((char *)scan->mgmtData + sizeof(Expr));
+    int *slot = (int*)((char *)scan->mgmtData + sizeof(Expr) + sizeof(int));
+    int slots = *(int*)((char *)scan->mgmtData + sizeof(Expr) + 2*sizeof(int));
+    int *currTuple = (int*)((char *)scan->mgmtData + sizeof(Expr) + 3*sizeof(int));
+    int numTuples = *(int*)((char *)scan->mgmtData + sizeof(Expr) + 4*sizeof(int));
+
+    // return if tuples exceeded
+    if(*currTuple>numTuples){
+        return RC_RM_NO_MORE_TUPLES;
+    }
+
+    // get recording using slot and page
+    RID rid;
+    rid.page = *page;
+    rid.slot = *slot;
+    getRecord(scan->rel, rid, record);
+
+    // increment slot, page and currTuple accordingly
+    (*currTuple)++;
+    if(*slot+1==slots){
+        (*page)++;
+        *slot=0;
+    } else {
+        (*slot)++;
+    }
+    
+    // using evalExpr from expr.c file
+    Value *val;
+    evalExpr(record, scan->rel->schema, expr, &val);
+    free(val);
+    
     return RC_OK;
 }
 
 RC closeScan (RM_ScanHandle *scan){
+    free(scan->mgmtData);
     return RC_OK;
 }
 
