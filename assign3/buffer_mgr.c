@@ -104,7 +104,7 @@ RC forceFlushPool(BM_BufferPool *const bm){
             page->pageNum = entry.pageNum;
             page->data = (char *)malloc(PAGE_SIZE);
 
-            strcpy(page->data, entry.pageData);
+            memcpy(page->data, entry.pageData, PAGE_SIZE);
             if(forcePage(bm, page)!=RC_OK){
                 free(page->data);
                 free(page);
@@ -179,7 +179,7 @@ RC forcePage (BM_BufferPool *const bm, BM_PageHandle *const page){
         pthread_mutex_unlock(&writeLock);
         return RC_WRITE_FAILED;
     }
-    strcpy(ph, page->data);
+    memcpy(ph, page->data, PAGE_SIZE);
 
     if(writeBlock(page->pageNum, &fh, ph)!=RC_OK){
         free(ph);
