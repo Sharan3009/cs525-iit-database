@@ -384,6 +384,8 @@ int getRecordSize (Schema *schema){
                 recordSize += sizeof(bool);
                 break;
             default:
+                recordSize += 0;
+                break;
                 // do nothing
         }
     }
