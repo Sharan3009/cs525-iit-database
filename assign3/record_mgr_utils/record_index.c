@@ -2,13 +2,48 @@
 #include <stdlib.h>
 #include <string.h>
 #include "record_index.h"
+#include "record_mgr_serializer.h"
+
+#define READ "r"
+#define WRITE "wb+"
+
+char *fileName = NULL;
 
 void initRecordIndex(RM_TableData *rel){
+
+    // opening file
+    char *fileName = getIndexFileName(rel->name);
+    FILE *file = fopen(fileName, READ);
+
     RecordIndexLinkedList * list = (RecordIndexLinkedList *)malloc(sizeof(RecordIndexLinkedList));
     memset(list, '\0', sizeof(RecordIndexLinkedList));
-    list->size = 0;
-    list->head = NULL;
-    memcpy((char*)rel->mgmtData + sizeof(BM_BufferPool), list, sizeof(RecordIndexLinkedList));
+
+    // file never existed
+    if(file==NULL){
+        list->size = 0;
+        list->head = NULL;
+        list->keySize = getKeySize(rel->schema);
+        memcpy((char*)rel->mgmtData + sizeof(BM_BufferPool), list, sizeof(RecordIndexLinkedList));
+    } else {
+        fseek(file, 0, SEEK_END);
+        long fileSize = ftell(file);
+        fseek(file, 0, SEEK_SET);
+
+        // Allocate memory for the entire file
+        char* page = (char*)malloc(fileSize); 
+
+        fread(page, 1, fileSize, file);
+
+        deserializeRecordIndexFromPage(list, page);
+
+        memcpy((char*)rel->mgmtData + sizeof(BM_BufferPool), list, sizeof(RecordIndexLinkedList));
+
+        free(page);  
+        fclose(file);
+
+    }
+
+    free(fileName);
     free(list);
 }
 
@@ -73,18 +108,17 @@ RC deleteRecordIndexNode(RM_TableData *rel, RID id) {
 
 RecordIndexNode *getRecordIndexNodeByKey(RM_TableData* rel, Record* record) {
     RecordIndexLinkedList *list = getRecordIndexList(rel);
-    int keySize = getKeySize(rel->schema);
     RecordIndexNode *key = malloc(sizeof(RecordIndexNode));
     memset(key, '\0', sizeof(RecordIndexNode));
-    key->data = malloc(keySize);
-    memset(key->data, '\0', keySize);
+    key->data = malloc(list->keySize);
+    memset(key->data, '\0', list->keySize);
     if(getKeyFromRecordData(rel->schema, record->data, key)!=RC_OK){
         return NULL;
     }
     RecordIndexNode* temp = list->head;
     RecordIndexNode* prev = NULL;
 
-    while (temp != NULL && memcmp(temp->data, key->data, keySize)!=0) {
+    while (temp != NULL && memcmp(temp->data, key->data, list->keySize)!=0) {
         prev = temp;
         temp = temp->next;
     }
@@ -97,6 +131,7 @@ RecordIndexNode *getRecordIndexNodeById(RM_TableData* rel, RID id) {
     RecordIndexLinkedList *list = getRecordIndexList(rel);
     RecordIndexNode* temp = list->head;
     RecordIndexNode* prev = NULL;
+    printf("list head=%p\n", temp);
 
     while (temp != NULL && id.page != temp->pageNum && id.slot != temp->slot) {
         prev = temp;
@@ -105,8 +140,21 @@ RecordIndexNode *getRecordIndexNodeById(RM_TableData* rel, RID id) {
     return temp;
 }
 
-void destroyRecordIndex(RM_TableData *rel){
+void closeRecordIndex(RM_TableData *rel){
     RecordIndexLinkedList *list = getRecordIndexList(rel);
+
+    char *fileName = getIndexFileName(rel->name);
+    char *page;
+    int size = serializeRecordIndexIntoPage(list, &page);
+    
+    FILE* file = fopen(fileName, WRITE);
+
+    fwrite(page, 1, size, file);
+
+    fclose(file);
+
+    free(fileName);
+
     RecordIndexNode* temp = list->head;
     RecordIndexNode* next = NULL;
 
@@ -119,6 +167,13 @@ void destroyRecordIndex(RM_TableData *rel){
     list->size = 0;
 
     list->head = NULL; 
+    free(page);
+}
+
+void deleteRecordIndex(char *name){
+    char *fileName = getIndexFileName(name);
+    remove(fileName);
+    free(fileName);
 }
 
 RC getKeyFromRecordData(Schema *schema, char* recordData, RecordIndexNode *node){
@@ -176,4 +231,11 @@ int getKeySize(Schema *schema){
         }
     }
     return size;
+}
+
+char *getIndexFileName(char *name){
+    char *fileName = malloc(strlen(name) + strlen("_index") + 1);
+    strcpy(fileName, name);
+    strcat(fileName, "_index");
+    return fileName;
 }

@@ -68,15 +68,105 @@ void deserializeSchemaFromPage(Schema *schema, char* page){
     memcpy(schema->keyAttrs, ptr, schema->keySize * sizeof(int));
 }
 
-void serializeRecordIndexIntoPage(RecordIndexLinkedList *list, char* page){
+int serializeRecordIndexIntoPage(RecordIndexLinkedList *list, char** page){
+
+    int size = sizeof(int) + sizeof(int) + list->size*(sizeof(PageNumber) + sizeof(int) + list->keySize);
+
+    *page = (char *)malloc(size);
+    memset(*page, '\0', size);
+
+    char *ptr = *page;
+
+    memcpy(ptr, &(list->size), sizeof(int));
+    ptr += sizeof(int);
+
+    memcpy(ptr, &(list->keySize), sizeof(int));
+    ptr += sizeof(int);
+
+    RecordIndexNode *node = list->head;
+    // Serialize attrNames
+    for (int i = 0; i < list->size; i++) {
+        memcpy(ptr, &(node->pageNum), sizeof(PageNumber));
+        ptr += sizeof(PageNumber);
+
+        memcpy(ptr, &(node->slot), sizeof(int));
+        ptr += sizeof(int);
+
+        memcpy(ptr, node->data, list->keySize);
+        ptr += list->keySize;
+
+        node = node->next;
+    }
+
+    return size;
     
 }
+
 void deserializeRecordIndexFromPage(RecordIndexLinkedList *list, char* page){
+    char *ptr = page;
+
+    memcpy(&(list->size), ptr, sizeof(int));
+    ptr += sizeof(int);
+
+    memcpy(&(list->keySize), ptr, sizeof(int));
+    ptr += sizeof(int);
+
+    for (int i=0; i<list->size;i++){
+        RecordIndexNode *node = (RecordIndexNode *)malloc(sizeof(RecordIndexNode));
+        memset(node, '\0', sizeof(RecordIndexNode));
+
+        memcpy(&(node->pageNum), ptr, sizeof(PageNumber));
+        ptr += sizeof(PageNumber);
+
+        memcpy(&(node->slot), ptr, sizeof(int));
+        ptr += sizeof(int);
+
+        node->data = (char *)malloc(list->keySize);
+        memset(node->data, '\0', list->keySize);
+        memcpy(node->data, ptr, list->keySize);
+        ptr += list->keySize;
+
+        if (list->head == NULL) {
+            list->head = node;
+        } else {
+            node->next = list->head;
+            list->head = node;
+        }
+    }
+
+}
+
+int serializePageDirectoryIntoPage(PageDirectory *directory, char** page){
+
+    int size = sizeof(int) + directory->capacity*sizeof(bool);
+    *page = (char *)malloc(size);
+    memset(*page, '\0', size);
+
+    char *ptr = *page;
+
+    memcpy(ptr, &(directory->capacity), sizeof(int));
+    ptr += sizeof(int);
+
+    for(int i=0;i<directory->capacity;i++){
+        memcpy(ptr, &(directory->isFull[i]), sizeof(bool));
+        ptr += sizeof(bool);
+    }
+
+    return size;
     
 }
-void serializePageDirectoryIntoPage(PageDirectory *directory, char* page){
-    
-}
+
 void deserializePageDirectoryFromPage(PageDirectory *directory, char* page){
-    
+    char *ptr = page;
+
+    memcpy(&(directory->capacity), ptr, sizeof(int));
+    ptr += sizeof(int);
+
+    directory->isFull = (bool *)malloc(directory->capacity * sizeof(bool));
+    memset(directory->isFull, '\0', directory->capacity * sizeof(bool));
+
+    for(int i=0;i<directory->capacity;i++){
+        memcpy(&(directory->isFull[i]), ptr, sizeof(bool));
+        ptr += sizeof(bool);
+    }
 }

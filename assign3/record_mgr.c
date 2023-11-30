@@ -103,8 +103,8 @@ RC closeTable (RM_TableData *rel){
     firstPage->pageNum = 0;
     RC ret = unpinPage(bm, firstPage);
     // cleaning
-    destroyRecordIndex(rel);
-    destroyPageDirectory(rel);
+    closeRecordIndex(rel);
+    closePageDirectory(rel);
     shutdownBufferPool(bm);
     freeSchema(rel->schema);
     free(rel->mgmtData);
@@ -116,6 +116,8 @@ RC deleteTable (char *name){
     if (name == NULL) {
         return RC_FILE_HANDLE_NOT_INIT;
     }
+    deleteRecordIndex(name);
+    deletePageDirectory(name);
     return destroyPageFile(name);
 }
 
