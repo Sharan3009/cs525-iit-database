@@ -32,6 +32,7 @@ RC createTable (char *name, Schema *schema){
         return RC_FILE_NOT_FOUND;
     }
 
+    // create page file
     RC ret = createPageFile(name);
     if (ret != RC_OK) {
         return ret;
@@ -68,8 +69,8 @@ RC openTable (RM_TableData *rel, char *name){
         return RC_FILE_NOT_FOUND;
     }
 
+    // initializes buffer pool
     BM_BufferPool *bm = MAKE_POOL();
-    
     RC ret = initBufferPool(bm, name, 100, RS_LRU, NULL);
     if (ret != RC_OK) {
         free(bm);
@@ -266,23 +267,7 @@ RC getRecord (RM_TableData *rel, RID id, Record *record){
     if((ret=pinPage(bm, page, id.page))!=RC_OK){
         return ret;
     }
-    int recordSize = 0;
-    for(int i=0;i<rel->schema->numAttr;i++){
-        switch(rel->schema->dataTypes[i]){
-            case DT_INT:
-                recordSize+=sizeof(int);
-                break;
-            case DT_FLOAT:
-                recordSize+=sizeof(float);
-                break;
-            case DT_BOOL:
-                recordSize+=sizeof(bool);
-                break;
-            case DT_STRING:
-                recordSize+=(rel->schema->typeLength[i] + 1);
-                break;
-        }
-    }
+    int recordSize = getRecordSize(rel->schema);
     int offset = id.slot*recordSize;
     record->id.page = id.page;
     record->id.slot = id.slot;
@@ -326,11 +311,15 @@ RC next (RM_ScanHandle *scan, Record *record){
     }
     // deserializing data stored in mgmtData
     ScanMetadata *md = (ScanMetadata *)scan->mgmtData;
+    RC ret = RC_OK;
     while(md->currTuple < md->totalTuples){
         RID rid;
         rid.page = md->page;
         rid.slot = md->slot;
-        getRecord(scan->rel, rid, record);
+        ret = getRecord(scan->rel, rid, record);
+        if(ret!=RC_OK){
+            return ret;
+        }
 
         md->currTuple++;
         if(md->slot+1 == md->slots){
@@ -341,10 +330,10 @@ RC next (RM_ScanHandle *scan, Record *record){
         }
 
         Value *val;
-        evalExpr(record, scan->rel->schema, md->expr, &val);
-        if(val->v.boolV==true){
+        ret = evalExpr(record, scan->rel->schema, md->expr, &val);
+        if(ret!=RC_OK || val->v.boolV==true){
             free(val);
-            return RC_OK;
+            return ret;
         }
         free(val);
     }
