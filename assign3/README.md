@@ -17,7 +17,7 @@ Sharandeep Singh
     - Or Run `make` and execute each test case individually like `./test_assign3_1`
 - Make sure all the database files are deleted before running the test cases.
 - For every table file you will see two extra files with same name but suffix of `_index` and `_directory`. They store the record index and page directories respectively.
-- All the test cases pass but you will see some **valgrind memory leaks happening in the given test case files**.
+- All the test cases pass. **Note** - You might see some memory leaks but they are because of the test file as memory deallocation is not handled propertly in `test_assign3_1.c`.
 
 # Code structure
 - `record_mgr_utils` folder consist of auxillary files needed by `record_mgr.c` to pull through its working. This is for making code modular and readable. This folder consists of `page_directory.c`,`record_index.c` and `record_mgr_serializer.c`.
