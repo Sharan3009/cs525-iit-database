@@ -12,9 +12,10 @@ typedef struct ScanMetadata {
     int recordSize;
     int slots;
     int totalTuples;
-    int page;
+    PageNumber pageNum;
     int slot;
     int currTuple;
+    SM_PageHandle page;
 } ScanMetadata;
 
 // table and manager
@@ -297,9 +298,11 @@ RC startScan (RM_TableData *rel, RM_ScanHandle *scan, Expr *cond){
     md->recordSize = getRecordSize(rel->schema);
     md->slots = PAGE_SIZE/md->recordSize;
     md->totalTuples = getNumTuples(rel);
-    md->page = 1;
+    md->pageNum = 1;
     md->slot = 0;
     md->currTuple = 0;
+    md->page = (SM_PageHandle)malloc(PAGE_SIZE);
+    memset(md->page, '\0', PAGE_SIZE);
 
    scan->mgmtData = md;
     return RC_OK;
@@ -309,21 +312,39 @@ RC next (RM_ScanHandle *scan, Record *record){
     if(scan==NULL || scan->rel == NULL || scan->mgmtData == NULL){
         return RC_FILE_HANDLE_NOT_INIT;
     }
-    // deserializing data stored in mgmtData
+
     ScanMetadata *md = (ScanMetadata *)scan->mgmtData;
     RC ret = RC_OK;
+
+    // read page if its a new page.
+    if(md->slot==0){
+        SM_FileHandle fh;
+        ret = openPageFile(scan->rel->name, &fh);
+        if(ret!=RC_OK){
+            return ret;
+        }
+        ret = readBlock(md->pageNum, &fh, md->page);
+        if(ret!=RC_OK){
+            return ret;
+        }
+        ret = closePageFile(&fh);
+        if(ret!=RC_OK){
+            return ret;
+        }
+    }
     while(md->currTuple < md->totalTuples){
         RID rid;
-        rid.page = md->page;
+        rid.page = md->pageNum;
         rid.slot = md->slot;
-        ret = getRecord(scan->rel, rid, record);
+        int offset = md->slot*md->recordSize;
+        memcpy(record->data, md->page + offset, md->recordSize);
         if(ret!=RC_OK){
             return ret;
         }
 
         md->currTuple++;
         if(md->slot+1 == md->slots){
-            md->page++;
+            md->pageNum++;
             md->slot = 0;
         } else {
             md->slot++;
@@ -342,6 +363,8 @@ RC next (RM_ScanHandle *scan, Record *record){
 }
 
 RC closeScan (RM_ScanHandle *scan){
+    ScanMetadata *md = (ScanMetadata *)scan->mgmtData;
+    free(md->page);
     free(scan->mgmtData);
     return RC_OK;
 }

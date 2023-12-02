@@ -49,9 +49,10 @@ Sharandeep Singh
         - `recordSize` - the size of the records to prevent calculating recordSize again and again
         - `slots` - The total number of slots in a single page
         - `totalTuples` - The number of tuples in a file. This decides when to return `RC_RM_NO_MORE_TUPLES`
-        - `page` - initializes to `1`. But it gets incremented based on the `next` method call.
+        - `pageNum` - initializes to `1`. But it gets incremented based on the `next` method call.
         - `slot` - initializes to `0`. But it gets incremented based on the `next` method call.
         - `currTuple` - initializes to `0`. It is the number of tuples processed by the scan.
+        - `page` - the page of the page number.
     
     - `initRecordManager` - It will initialize record manager and calls `initStorageManager` from within.
     - `shutdownRecordManager` - It should be used to free up all the resources. However we do not have any global variables to free so this method does free anything.
@@ -60,12 +61,12 @@ Sharandeep Singh
     - `closeTable` - it closes the file and save its corresponding directory and index data. It also cleans up all the `rel->mgmtData` i.e `Schema`, `PageDirectory` and `RecordIndexLinkedList`.
     - `deleteTable` - It deletes the file and its corresponding directory and index file.
     - `getNumTuples` - returns the `size` key from `RecordIndexLinkedList` struct.
-    - `insertRecord` - It first checks if the key already exists in the data using the record index. If it does, then it simply returns `RC_IM_KEY_ALREADY_EXISTS`. Otherwise it finds the appropriate empty page and slot and insert the record there. After that it inserts the key in record index and sets the page `isFull` status to `true` if the page is full.
+    - `insertRecord` - It first checks if the `key` already exists in the data using the record index. If it does, then it simply returns `RC_IM_KEY_ALREADY_EXISTS`. Otherwise it finds the appropriate empty page and slot and insert the record there. After that it inserts the key in record index and sets the page `isFull` status to `true` if the page is full.
     - `deleteRecord` - It deletes the record in the given page and slot and also deletes the record index otherwise it returns `RC_IM_KEY_NOT_FOUND`. Also it sets the `isFull` flag to false because we delete the record.
     - `updateRecord` - It first checks if the key exists in the data using the record index. If it does not, then it returns `RC_IM_KEY_NOT_FOUND`. It updates the record in the given page and slot.
     - `getRecord` - It first check if the key exist in the record index. if it does not then it simply return `RC_IM_KEY_NOT_FOUND`. Otherwise it goes to that page and slot and reads the record data.
     - `startScan` - It initializes `ScanMetadata` and store it in the `scan->mgmtData`. Its initial values are explained in the `ScanMetadata` struct part.
-    - `next` - it uses the `getRecord` to get the record using page and slot in the metadata. After that appropriate page, slot and currTuple value is updated. if `evalExpr` returns true then it returns RC_OK other wise the error code. In the end if it cross the total number of records then it returns `RC_RM_NO_MORE_TUPLES`
+    - `next` - It uses storage manager directly to get the page data instead of buffer manager. This is to prevent buffer pool pollute because its a sequential scan. This method will only read the page if `slot==0` which indicates its a new page. After that appropriate page, slot and currTuple value is updated. if `evalExpr` returns true then it returns RC_OK other wise the error code. In the end if it cross the total number of records then it returns `RC_RM_NO_MORE_TUPLES`
     - `closeScan` - it frees the `scan->mgmtData` metadata.
     - `getRecordSize` - It calculates the totalRecords size using `numAttr`. If datatype is a string then it uses `typeLength`+1 otherwise it just adds sizeof(datatype).
     - `createSchema`, `freeSchema`, `createRecord`, `freeRecord`, `getAttr`, `setAttr` just create the schemas, records and set/get attribute values in the records.
