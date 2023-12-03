@@ -387,7 +387,7 @@ int getRecordSize (Schema *schema){
                 recordSize += sizeof(int);
                 break;
             case DT_STRING:
-                recordSize += (schema->typeLength[i] + 1); // +1 for the null termination
+                recordSize += (schema->typeLength[i] + 1)*sizeof(char); // +1 for the null termination
                 break;
             case DT_FLOAT:
                 recordSize += sizeof(float);
@@ -515,7 +515,7 @@ RC getAttr (Record *record, Schema *schema, int attrNum, Value **value){
                 attrOffset += sizeof(bool);
                 break;
             case DT_STRING:
-                attrOffset += (schema->typeLength[i] + 1);
+                attrOffset += (schema->typeLength[i] + 1)*sizeof(char);
                 break;
             default:
                 return RC_RM_UNKOWN_DATATYPE;
@@ -535,8 +535,8 @@ RC getAttr (Record *record, Schema *schema, int attrNum, Value **value){
             memcpy(&valuePtr->v.boolV, record->data + attrOffset, sizeof(bool));
             break;
         case DT_STRING:
-            valuePtr->v.stringV = (char *)malloc(schema->typeLength[attrNum] + 1); // +1 for the null character
-            memcpy(valuePtr->v.stringV, record->data + attrOffset, schema->typeLength[attrNum] + 1);
+            valuePtr->v.stringV = (char *)malloc((schema->typeLength[attrNum] + 1)*sizeof(char)); // +1 for the null character
+            memcpy(valuePtr->v.stringV, record->data + attrOffset, (schema->typeLength[attrNum] + 1)*sizeof(char));
             break;
         default:
             return RC_RM_UNKOWN_DATATYPE;
@@ -570,7 +570,7 @@ RC setAttr (Record *record, Schema *schema, int attrNum, Value *value){
                 attrOffset += sizeof(bool);
                 break;
             case DT_STRING:
-                attrOffset += (schema->typeLength[i] + 1);
+                attrOffset += (schema->typeLength[i] + 1)*sizeof(char);
                 break;
             default:
                 return RC_RM_UNKOWN_DATATYPE;
@@ -588,7 +588,7 @@ RC setAttr (Record *record, Schema *schema, int attrNum, Value *value){
             memcpy(record->data + attrOffset, &value->v.boolV, sizeof(bool));
             break;
         case DT_STRING:
-            memcpy(record->data + attrOffset, value->v.stringV, schema->typeLength[attrNum] + 1); // for null character
+            memcpy(record->data + attrOffset, value->v.stringV, (schema->typeLength[attrNum] + 1)*sizeof(char));
             break;
         default:
             return RC_RM_UNKOWN_DATATYPE;

@@ -189,7 +189,7 @@ RC getKeyFromRecordData(Schema *schema, char* recordData, RecordIndexNode *node)
                 size=sizeof(bool);
                 break;
             case DT_STRING:
-                size=(schema->typeLength[attr] + 1);
+                size=(schema->typeLength[attr] + 1)*sizeof(char);
                 break;
             default:
                 size=0;
@@ -223,7 +223,7 @@ int getKeySize(Schema *schema){
                 size+=sizeof(bool);
                 break;
             case DT_STRING:
-                size+=(schema->typeLength[schema->keyAttrs[i]] + 1);
+                size+=(schema->typeLength[schema->keyAttrs[i]] + 1)*sizeof(char);
                 break;
         }
     }
